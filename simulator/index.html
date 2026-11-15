@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#f6ecbe" />
+    <meta name="description" content="An interactive star chart for the Search for Lucian classroom mystery." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='24' fill='%231d2240'/%3E%3Cpath d='M32 10v44M10 32h44' stroke='%23f6ecbe' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='8' fill='none' stroke='%23f6ecbe' stroke-width='2'/%3E%3C/svg%3E" />
+    <title>Search for Lucian — Star Chart</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="scene" aria-label="Interactive three-dimensional star map"></div>
+
+      <header class="masthead">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Halcyon search chart</div>
+        <h1>Search for <em>Lucian</em></h1>
+        <p id="mode-caption">Six possible locations · Planned passage Azure → Amber</p>
+      </header>
+
+      <div class="controls panel" aria-label="Map controls">
+        <div class="control-group">
+          <span class="control-label">View</span>
+          <div class="segmented">
+            <button type="button" data-view="overview" class="active">Overview</button>
+            <button type="button" data-view="top">Top</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <button type="button" id="theme-toggle" class="icon-button" aria-label="Switch to deep space theme">
+          <span class="theme-icon" aria-hidden="true">◐</span>
+          <span id="theme-label">Space</span>
+        </button>
+      </div>
+
+      <aside id="place-card" class="place-card panel" aria-live="polite" aria-hidden="true">
+        <button type="button" id="close-card" class="close-button" aria-label="Close details">×</button>
+        <span class="card-kicker">Map location</span>
+        <h2 id="card-title"></h2>
+        <p id="card-description"></p>
+      </aside>
+
+      <section id="reveal-panel" class="reveal-panel panel" aria-label="Reveal timeline" hidden>
+        <div class="timeline-head">
+          <div>
+            <span class="card-kicker">Halcyon reconstruction</span>
+            <strong id="time-readout">T+00 h</strong>
+          </div>
+          <div class="timeline-actions">
+            <button type="button" id="speed-toggle" class="small-button" aria-label="Toggle playback speed">1×</button>
+            <button type="button" id="play-button" class="play-button" aria-label="Play reveal">
+              <span id="play-icon">▶</span><span id="play-label">Play</span>
+            </button>
+          </div>
+        </div>
+        <input id="time-slider" type="range" min="0" max="48" step="0.1" value="0" aria-label="Reveal time in hours" />
+        <div class="tick-row" aria-hidden="true"><span>T+0</span><span>T+12</span><span>T+24</span><span>T+36</span><span>T+48</span></div>
+      </section>
+
+      <div class="legend panel" aria-hidden="true">
+        <span><i class="legend-route"></i> Planned route</span>
+        <span><i class="legend-marker"></i> Last confirmed</span>
+      </div>
+
+      <div class="mode-badge" id="mode-badge">Player chart</div>
+      <div class="hint">Drag to orbit · Pinch or scroll to zoom · Select a location</div>
+      <div class="grain" aria-hidden="true"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

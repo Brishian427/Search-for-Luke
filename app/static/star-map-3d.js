@@ -12,8 +12,8 @@ if (host && mount && labelLayer) {
     scene.fog = new THREE.FogExp2(0x0b1017, 0.0042);
 
     const camera = new THREE.PerspectiveCamera(43, 5 / 3, 0.1, 900);
-    const homePosition = new THREE.Vector3(-67, 17, 200);
-    const homeTarget = new THREE.Vector3(-67, -8, 10);
+    const homePosition = new THREE.Vector3(0, 75, 207);
+    const homeTarget = new THREE.Vector3(0, 0, 0);
     camera.position.copy(homePosition);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -33,10 +33,10 @@ if (host && mount && labelLayer) {
     controls.rotateSpeed = 0.62;
     controls.enableRotate = true;
     controls.enablePan = false;
-    controls.minDistance = 110;
-    controls.maxDistance = 420;
-    controls.minPolarAngle = 0.12;
-    controls.maxPolarAngle = Math.PI - 0.12;
+    controls.minDistance = 120;
+    controls.maxDistance = 380;
+    controls.minPolarAngle = 1.05;
+    controls.maxPolarAngle = 1.35;
     controls.zoomToCursor = false;
     controls.update();
     controls.saveState();
@@ -46,10 +46,10 @@ if (host && mount && labelLayer) {
     keyLight.position.set(-35, 68, 110);
     scene.add(keyLight);
     const orangeLight = new THREE.PointLight(0xf0a04b, 42, 95, 2);
-    orangeLight.position.set(43, 1, 20);
+    orangeLight.position.set(92, 12, 22);
     scene.add(orangeLight);
     const veilLight = new THREE.PointLight(0xb9e7ff, 22, 70, 2);
-    veilLight.position.set(61, 8, -2);
+    veilLight.position.set(104, 12, 2);
     scene.add(veilLight);
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -62,13 +62,13 @@ if (host && mount && labelLayer) {
     let currentSelections = [];
 
     const places = {
-      reach:  { name: 'REACH',          position: [-67, -8,  10], radius: 7.3, color: '#6381a2', accent: '#a9d4ff', spin: 0.10 },
-      storm:  { name: 'STORM ZONE',     position: [-17, -5,   5], radius: 9.3, color: '#d9b44a', accent: '#fff0a4', spin: 0.16 },
-      orange: { name: 'ORANGE PLANET',  position: [ 39,  1,   0], radius: 12,  color: '#f0a04b', accent: '#ffd39a', spin: 0.075 },
-      veil:   { name: 'THE VEIL',       position: [ 61,  8, -13], radius: 11,  color: '#dde6f0', accent: '#ffffff', spin: 0.018 },
-      green:  { name: 'GREEN PLANET',   position: [-31,-39,  -5], radius: 7.7, color: '#5fbf6b', accent: '#a8f2b2', spin: 0.09 },
-      red:    { name: 'RED PLANET',     position: [-49, 35, -11], radius: 7.7, color: '#e5534b', accent: '#ffaaa5', spin: 0.12 },
-      debris: { name: 'DEBRIS BELT',    position: [  4,-42,  -4], radius: 12,  color: '#8b98a9', accent: '#c9d2db', spin: 0 }
+      reach:  { name: 'REACH',          position: [  0, 0,   0], radius: 7.3, color: '#6381a2', accent: '#a9d4ff', spin: 0.10 },
+      storm:  { name: 'STORM ZONE',     position: [ 57, 0,  12], radius: 9.3, color: '#d9b44a', accent: '#fff0a4', spin: 0.16 },
+      orange: { name: 'ORANGE PLANET',  position: [ 92, 0,   8], radius: 12,  color: '#f0a04b', accent: '#ffd39a', spin: 0.075 },
+      veil:   { name: 'THE VEIL',       position: [104, 0,  -4], radius: 11,  color: '#dde6f0', accent: '#ffffff', spin: 0.018 },
+      green:  { name: 'GREEN PLANET',   position: [-51, 0, -51], radius: 7.7, color: '#5fbf6b', accent: '#a8f2b2', spin: 0.09 },
+      red:    { name: 'RED PLANET',     position: [-39, 0,  39], radius: 7.7, color: '#e5534b', accent: '#ffaaa5', spin: 0.12 },
+      debris: { name: 'DEBRIS BELT',    position: [ 50, 0, -72], radius: 12,  color: '#8b98a9', accent: '#c9d2db', spin: 0 }
     };
 
     function seeded(seed) {
@@ -230,11 +230,26 @@ if (host && mount && labelLayer) {
 
     function createGrid() {
       const points = [];
-      for (let x = -100; x <= 100; x += 10) points.push(x, -65, -28, x, 62, -28);
-      for (let y = -60; y <= 60; y += 10) points.push(-105, y, -28, 105, y, -28);
+      for (let x = -120; x <= 120; x += 10) points.push(x, -1.4, -120, x, -1.4, 120);
+      for (let z = -120; z <= 120; z += 10) points.push(-120, -1.4, z, 120, -1.4, z);
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
       scene.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x5c7085, transparent: true, opacity: 0.09 })));
+    }
+
+    function createOrbits() {
+      const center = new THREE.Vector3(...places.reach.position);
+      ['red', 'storm', 'green', 'orange'].forEach((id, index) => {
+        const position = new THREE.Vector3(...places[id].position);
+        const radius = Math.hypot(position.x - center.x, position.z - center.z);
+        const points = [];
+        for (let step = 0; step < 128; step += 1) {
+          const angle = step / 128 * Math.PI * 2;
+          points.push(new THREE.Vector3(center.x + Math.cos(angle) * radius, -0.6 - index * 0.04, center.z + Math.sin(angle) * radius));
+        }
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        scene.add(new THREE.LineLoop(geometry, new THREE.LineBasicMaterial({ color: 0x7890a8, transparent: true, opacity: 0.16, depthWrite: false })));
+      });
     }
 
     function createStars() {
@@ -247,10 +262,15 @@ if (host && mount && labelLayer) {
     }
 
     function createRoute() {
+      const routePoint = id => {
+        const point = new THREE.Vector3(...places[id].position);
+        point.y = 0.7;
+        return point;
+      };
       const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(...places.reach.position),
-        new THREE.Vector3(...places.storm.position),
-        new THREE.Vector3(...places.orange.position)
+        routePoint('reach'),
+        routePoint('storm'),
+        routePoint('orange')
       ]);
       const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(70));
       const route = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x8ca1b8, dashSize: 2.4, gapSize: 2.1, transparent: true, opacity: 0.65 }));
@@ -273,6 +293,7 @@ if (host && mount && labelLayer) {
     }
 
     createGrid();
+    createOrbits();
     createStars();
     createRoute();
     ['reach', 'storm', 'orange', 'green', 'red'].forEach((id, index) => createPlanet(id, places[id], index));
@@ -328,6 +349,7 @@ if (host && mount && labelLayer) {
       const width = mount.clientWidth;
       const height = mount.clientHeight;
       const vector = new THREE.Vector3();
+      const screenOffsets = { orange: [-16, 2], veil: [18, -10] };
       labels.forEach((label, id) => {
         const body = bodies.get(id);
         vector.copy(body.position);
@@ -336,17 +358,21 @@ if (host && mount && labelLayer) {
         const visible = vector.z > -1 && vector.z < 1;
         label.hidden = !visible;
         if (!visible) return;
-        const rawX = (vector.x * 0.5 + 0.5) * width;
+        const [offsetX, offsetY] = screenOffsets[id] || [0, 0];
+        const rawX = (vector.x * 0.5 + 0.5) * width + offsetX;
+        const rawY = (-vector.y * 0.5 + 0.5) * height + offsetY;
         const labelPadding = Math.min(70, width * 0.19);
         const x = Math.max(labelPadding, Math.min(width - labelPadding, rawX));
-        label.style.transform = `translate(-50%,-50%) translate(${x}px,${(-vector.y * 0.5 + 0.5) * height}px)`;
+        label.style.transform = `translate(-50%,-50%) translate(${x}px,${rawY}px)`;
       });
     }
 
     let viewInitialized = false;
     function resetView() {
-      const compactDistance = mount.clientWidth < 600 ? 180 : 190;
-      homePosition.set(homeTarget.x, homeTarget.y + 25, homeTarget.z + compactDistance);
+      const compact = mount.clientWidth < 600;
+      const distance = compact ? 255 : 230;
+      const elevation = compact ? 0.49 : 0.43;
+      homePosition.set(homeTarget.x, homeTarget.y + distance * elevation, homeTarget.z + distance * Math.sqrt(1 - elevation * elevation));
       camera.position.copy(homePosition);
       controls.target.copy(homeTarget);
       controls.update();
@@ -355,10 +381,8 @@ if (host && mount && labelLayer) {
     function resize() {
       const width = Math.max(1, mount.clientWidth);
       const height = Math.max(1, mount.clientHeight);
-      const reachScreenRatio = width < 600 ? 0.24 : 0.27;
-      const fullWidth = Math.round(width * 2 * (1 - reachScreenRatio));
-      camera.aspect = fullWidth / height;
-      camera.setViewOffset(fullWidth, height, fullWidth - width, 0, width, height);
+      camera.clearViewOffset();
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
       if (!viewInitialized && width > 100 && height > 100) {
@@ -401,6 +425,7 @@ if (host && mount && labelLayer) {
       previousFrame = now;
       if (!document.hidden && !reducedMotion) spinners.forEach(item => { item.mesh.rotation.y += item.speed * delta; });
       controls.update(delta);
+      bodies.forEach(body => { body.userData.selectionRing.quaternion.copy(camera.quaternion); });
       updateLabels();
       renderer.render(scene, camera);
     }

@@ -61,8 +61,9 @@ Spectators can see public stage context and the map, but cannot receive clue car
 ## 3. Required 3D chart interaction
 
 - Reach is the camera pivot and must stay the semantic anchor of the system.
-- The default view presents the route in a readable horizontal composition.
-- Dragging freely orbits the camera around Reach in three dimensions; the camera is not locked to a horizontal or vertical axis.
+- All celestial locations share one orbital plane, with visible static orbit paths around Reach.
+- The default view presents that plane as a readable, flattened system chart.
+- Horizontal dragging orbits freely around Reach; vertical tilt is deliberately constrained to a shallow range so the chart keeps its planar character.
 - Scroll/pinch zooms toward or away from Reach. Panning the pivot away from Reach is disabled.
 - Planets rotate around their own axes.
 - Orbital revolution and the future phase model remain out of scope until their rules are approved.

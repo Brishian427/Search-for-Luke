@@ -1,1 +1,65 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Search for Luke</title></head><body><main><h1>Search for Luke</h1><p>Player interface is being prepared.</p></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0E1117">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 5l27 27-27 27L5 32z' fill='%230e1117' stroke='%233cc2b8' stroke-width='4'/%3E%3Cpath d='M32 20l3.5 8.5L44 32l-8.5 3.5L32 44l-3.5-8.5L20 32l8.5-3.5z' fill='%233cc2b8'/%3E%3C/svg%3E">
+  <title>Search for Luke</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <section id="join-view" class="join-view">
+    <div class="join-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+    <main class="join-card panel">
+      <div class="mission-mark"><span></span><b>IMPERIUM RESCUE COMMAND</b></div>
+      <p class="kicker">CLASSROOM MISSION · SECURE CHANNEL</p>
+      <h1>Search for <em>Luke</em></h1>
+      <p class="join-copy">Enter the room code, then identify yourself on the crew roster.</p>
+      <form id="room-form" class="room-form"><label><span>ROOM CODE</span><input id="room-input" maxlength="6" autocomplete="off" required></label><button class="primary-button">Find mission</button></form>
+      <div id="join-error" class="form-error"></div>
+      <div id="roster-picker" hidden><div class="join-divider"><span>SELECT YOUR NAME</span></div><div id="roster-options" class="roster-options"></div><details class="spectator-join"><summary>Not on the roster? Join as a spectator</summary><form id="spectator-form"><input id="spectator-name" placeholder="Your name" required><button>Join</button></form></details></div>
+    </main>
+  </section>
+
+  <div id="game-view" class="game-view" hidden>
+    <header class="game-header">
+      <div class="brand"><span class="brand-symbol">✦</span><div><small>IMPERIUM RESCUE COMMAND</small><strong>SEARCH FOR LUKE</strong></div></div>
+      <div class="stage-chip"><i></i><span id="stage-label">S0 · LOBBY</span></div>
+      <div class="clock"><span>STAGE TIME</span><strong id="countdown">--:--</strong></div>
+    </header>
+    <nav class="mobile-tabs" aria-label="Screen sections"><button data-tab="intel" class="active">Intel</button><button data-tab="mission">Mission</button><button data-tab="comms">Comms</button></nav>
+    <main class="game-grid">
+      <aside class="column intel-column active" data-panel="intel">
+        <section class="team-panel panel"><div class="team-heading"><div><span class="data-label">YOUR UNIT</span><h2 id="team-name">—</h2></div><span id="condition-badge" class="condition-badge">—</span></div><div id="teammates" class="teammates"></div></section>
+        <div class="column-title"><span>YOUR INTELLIGENCE</span><i></i></div>
+        <section id="cards" class="cards"><div class="locked-state"><span>◇</span><p>Clue cards remain sealed until mission start.</p></div></section>
+      </aside>
+      <section class="column mission-column" data-panel="mission">
+        <article class="instruction panel"><div class="instruction-index" id="stage-index">00</div><div><span class="data-label" id="stage-name">LOBBY</span><h2 id="instruction-text">Waiting for the mission to begin.</h2><p id="instruction-detail">Stay on this screen. The mission will begin automatically.</p></div></article>
+        <section id="briefing" class="briefing panel" hidden></section>
+        <section class="map-panel panel">
+          <div class="map-toolbar"><div><span class="data-label">NAVIGATION CHART</span><strong>REACH SYSTEM · HOUR 48</strong></div><div id="selection-counter" class="selection-counter" hidden><span>STARS PLACED</span><b>0 / 3</b></div></div>
+          <div id="star-map" class="star-map">
+            <svg viewBox="0 0 1000 600" role="img" aria-label="Map of the Reach system">
+              <defs><filter id="softGlow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="cloudBlur"><feGaussianBlur stdDeviation="16"/></filter><pattern id="mapGrid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#8b98a9" stroke-opacity=".07"/></pattern></defs>
+              <rect width="1000" height="600" fill="url(#mapGrid)"/><g class="orbits"><ellipse cx="100" cy="300" rx="170" ry="105"/><ellipse cx="100" cy="300" rx="340" ry="210"/><ellipse cx="100" cy="300" rx="570" ry="340"/><ellipse cx="100" cy="300" rx="790" ry="470"/></g><path class="planned-route" d="M115 300 C290 285 520 292 700 280"/><g class="veil-cloud"><ellipse cx="860" cy="250" rx="100" ry="72"/><circle cx="815" cy="240" r="48"/><circle cx="895" cy="230" r="54"/></g><g class="debris-dots" aria-hidden="true"></g><g id="map-places"></g><g class="map-legend"><text x="36" y="560">— — PLANNED ROUTE</text><text x="790" y="560">REACH SYSTEM / NOT TO SCALE</text></g>
+            </svg>
+          </div>
+          <div id="map-actions" class="map-actions" hidden><p id="map-help">Tap a location to place a star.</p><button id="submit-action" class="primary-button" disabled>Submit stars</button></div>
+          <div id="team-result" class="team-result" hidden></div>
+        </section>
+        <section id="share-order" class="share-order panel" hidden></section>
+      </section>
+      <aside class="column comms-column" data-panel="comms">
+        <section class="log-panel panel"><div class="panel-heading"><div><span class="data-label">MISSION LOG</span><strong>INCOMING DATA</strong></div><span class="live-dot">LIVE</span></div><div id="mission-log" class="mission-log"></div></section>
+        <section id="board-panel" class="board-panel panel" hidden><div class="panel-heading"><div><span class="data-label">TEAM BOARD</span><strong>SHARED FINDINGS</strong></div></div><form id="board-form"><input id="board-input" maxlength="600" placeholder="Share a finding with your team"><button aria-label="Post finding">↗</button></form><div id="board-feed" class="board-feed"></div></section>
+        <section id="assistant-panel" class="assistant-panel panel" hidden><div class="panel-heading"><div><span class="data-label">MISSION ASSISTANT</span><strong>PRIVATE AI CHANNEL</strong></div><span class="ai-status">AI</span></div><div id="assistant-feed" class="assistant-feed"><p>Ask about your cards or what to ask your teammates.</p></div><form id="assistant-form"><input id="assistant-input" maxlength="800" placeholder="Ask your assistant…"><button>Send</button></form></section>
+      </aside>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/static/player.js" defer></script>
+</body>
+</html>

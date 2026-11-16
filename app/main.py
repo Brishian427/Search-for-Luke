@@ -73,6 +73,7 @@ def player_state(db: Session, player: Player) -> dict[str, Any]:
     stage = game.stage_for(current_game)
     rank = stage_rank(stage["id"])
     teammates = db.query(Player).filter_by(session_id=current_game.id, team_id=player.team_id).order_by(Player.seat).all()
+    joined_by_name = {mate.name: mate for mate in teammates}
     cards = []
     if rank >= 1 and not player.spectator:
         for card_id in json.loads(player.cards_json):
@@ -106,7 +107,9 @@ def player_state(db: Session, player: Player) -> dict[str, Any]:
         "clock": {"elapsed": game.elapsed_seconds(current_game), "remaining": game.countdown_seconds(current_game), "paused": current_game.paused},
         "player": {"id": player.id, "name": player.name, "team_id": player.team_id, "seat": player.seat, "late": player.late, "spectator": player.spectator},
         "team": {"id": player.team_id, "condition": content.TEAMS.get(player.team_id, {}).get("condition", "Spectator"), "members": [
-            {"name": mate.name, "seat": mate.seat, "joined": True, "late": mate.late} for mate in teammates
+            {"name": name, "seat": joined_by_name[name].seat if name in joined_by_name else None,
+             "joined": name in joined_by_name, "late": joined_by_name[name].late if name in joined_by_name else False}
+            for name in content.TEAMS.get(player.team_id, {}).get("members", [])
         ]},
         "places": [{"id": place_id, **place} for place_id, place in content.PLACES.items()],
         "candidates": content.CANDIDATES,
@@ -118,6 +121,10 @@ def player_state(db: Session, player: Player) -> dict[str, Any]:
         "drop": {"commander": is_commander, "choices": drop_choices},
         "assistant_enabled": rank >= 3 and content.TEAMS.get(player.team_id, {}).get("condition") == "Human + AI",
     }
+    if stage["id"] == "S3" and teammates:
+        share_elapsed = max(0, game.elapsed_seconds(current_game) - stage["start"])
+        slot = min(len(teammates) - 1, int(share_elapsed / max(1, (stage["end"] - stage["start"]) / len(teammates))))
+        result["active_seat"] = teammates[slot].seat
     if rank >= 8:
         result["truth"] = content.TRUTH
         result["team_result"] = {"drops": drop_choices, "success": content.TRUTH in drop_choices}

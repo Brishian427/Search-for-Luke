@@ -1,6 +1,8 @@
 import json
 import os
 import io
+import asyncio
+import time
 from pathlib import Path
 from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -10,9 +12,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from . import content, game
+from . import content, game, ai
 from .database import Base, engine, get_db
-from .models import BoardPost, GameSession, Player, Submission, TeamDrop
+from .models import AssistantMessage, BoardPost, GameSession, Player, Submission, TeamDrop
 
 ROOT = Path(__file__).resolve().parent
 ADMIN_KEY = os.getenv("ADMIN_KEY", "classroom")
@@ -43,6 +45,22 @@ class DropBody(BaseModel):
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+
+
+@app.on_event("startup")
+async def start_ai_loop():
+    app.state.ai_task = asyncio.create_task(ai.ai_stage_loop())
+
+
+@app.on_event("shutdown")
+async def stop_ai_loop():
+    task = getattr(app.state, "ai_task", None)
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 def check_key(key: str):
@@ -123,6 +141,9 @@ def player_state(db: Session, player: Player) -> dict[str, Any]:
         "drop": {"commander": is_commander, "choices": drop_choices},
         "assistant_enabled": rank >= 3 and content.TEAMS.get(player.team_id, {}).get("condition") == "Human + AI",
     }
+    if result["assistant_enabled"]:
+        messages = db.query(AssistantMessage).filter_by(session_id=current_game.id, player_id=player.id).order_by(AssistantMessage.id).all()
+        result["assistant_messages"] = [{"role": item.role, "text": item.text, "latency_ms": item.latency_ms} for item in messages]
     if stage["id"] == "S3" and teammates:
         share_elapsed = max(0, game.elapsed_seconds(current_game) - stage["start"])
         slot = min(len(teammates) - 1, int(share_elapsed / max(1, (stage["end"] - stage["start"]) / len(teammates))))
@@ -199,6 +220,29 @@ def add_board_post(body: TextBody, player: str = Query(...), db: Session = Depen
     db.add(row)
     db.commit()
     return {"ok": True, "id": row.id}
+
+
+@app.post("/api/assistant")
+async def ask_assistant(body: TextBody, player: str = Query(...), db: Session = Depends(get_db)):
+    person = get_player(db, player)
+    current_game = db.get(GameSession, person.session_id)
+    stage = game.stage_for(current_game)
+    if stage_rank(stage["id"]) < 3 or content.TEAMS.get(person.team_id, {}).get("condition") != "Human + AI":
+        raise HTTPException(status_code=409, detail="Assistant is not available")
+    prior = db.query(AssistantMessage).filter_by(session_id=current_game.id, player_id=person.id).order_by(AssistantMessage.id).all()
+    history = [{"role": item.role, "content": item.text} for item in prior]
+    db.add(AssistantMessage(session_id=current_game.id, team_id=person.team_id, player_id=person.id, role="user", text=body.text.strip()))
+    db.commit()
+    started = time.perf_counter()
+    try:
+        reply = await ai.assistant_reply(person, body.text.strip(), stage_rank(stage["id"]) >= 4, history)
+    except Exception:
+        reply = "The assistant didn't respond. Ask again."
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    db.add(AssistantMessage(session_id=current_game.id, team_id=person.team_id, player_id=person.id,
+                            role="assistant", text=reply, latency_ms=latency_ms))
+    db.commit()
+    return {"reply": reply, "latency_ms": latency_ms}
 
 
 @app.post("/api/drop")

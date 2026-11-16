@@ -12,7 +12,7 @@ if (host && mount && labelLayer) {
     scene.fog = new THREE.FogExp2(0x0b1017, 0.0042);
 
     const camera = new THREE.PerspectiveCamera(43, 5 / 3, 0.1, 900);
-    const homePosition = new THREE.Vector3(0, 24, 176);
+    const homePosition = new THREE.Vector3(0, -4, 176);
     const homeTarget = new THREE.Vector3(0, -4, 0);
     camera.position.copy(homePosition);
 
@@ -29,15 +29,13 @@ if (host && mount && labelLayer) {
     controls.target.copy(homeTarget);
     controls.enableDamping = true;
     controls.dampingFactor = 0.065;
-    controls.rotateSpeed = 0.62;
     controls.zoomSpeed = 0.78;
-    controls.panSpeed = 0.55;
+    controls.enableRotate = false;
+    controls.enablePan = false;
     controls.minDistance = 88;
     controls.maxDistance = 250;
-    controls.minPolarAngle = 0.45;
-    controls.maxPolarAngle = 2.48;
     controls.maxTargetRadius = 42;
-    controls.zoomToCursor = true;
+    controls.zoomToCursor = false;
     controls.update();
     controls.saveState();
 
@@ -296,12 +294,42 @@ if (host && mount && labelLayer) {
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerStart = null;
-    renderer.domElement.addEventListener('pointerdown', event => { pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() }; });
+    renderer.domElement.addEventListener('pointerdown', event => {
+      pointerStart = {
+        x: event.clientX,
+        y: event.clientY,
+        time: performance.now(),
+        cameraX: camera.position.x,
+        targetX: controls.target.x
+      };
+      renderer.domElement.setPointerCapture?.(event.pointerId);
+    });
+    renderer.domElement.addEventListener('pointermove', event => {
+      if (pointerStart && event.buttons) {
+        const distance = camera.position.distanceTo(controls.target);
+        const worldPerPixel = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.max(1, mount.clientHeight);
+        const rawOffset = -(event.clientX - pointerStart.x) * worldPerPixel;
+        const targetX = THREE.MathUtils.clamp(pointerStart.targetX + rawOffset, -34, 34);
+        const appliedOffset = targetX - pointerStart.targetX;
+        camera.position.x = pointerStart.cameraX + appliedOffset;
+        controls.target.x = targetX;
+        controls.update();
+        return;
+      }
+      if (!interactive) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObjects(pickTargets, true)[0];
+      renderer.domElement.style.cursor = hit && interactiveIds.has(placeFromObject(hit.object)) ? 'pointer' : 'grab';
+    });
     renderer.domElement.addEventListener('pointerup', event => {
-      if (!pointerStart || !interactive) return;
-      const moved = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
-      const elapsed = performance.now() - pointerStart.time;
+      if (!pointerStart) return;
+      const start = pointerStart;
       pointerStart = null;
+      if (!interactive) return;
+      const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+      const elapsed = performance.now() - start.time;
       if (moved > 7 || elapsed > 650) return;
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
@@ -310,14 +338,7 @@ if (host && mount && labelLayer) {
       const id = hit ? placeFromObject(hit.object) : null;
       if (id && interactiveIds.has(id)) select(id);
     });
-    renderer.domElement.addEventListener('pointermove', event => {
-      if (!interactive || event.buttons) return;
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(pickTargets, true)[0];
-      renderer.domElement.style.cursor = hit && interactiveIds.has(placeFromObject(hit.object)) ? 'pointer' : 'grab';
-    });
+    renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
 
     function updateLabels() {
       const width = mount.clientWidth;
@@ -341,7 +362,7 @@ if (host && mount && labelLayer) {
     let viewInitialized = false;
     function resetView() {
       const compactDistance = camera.aspect < 1.12 ? 214 : 176;
-      homePosition.set(0, 24, compactDistance);
+      homePosition.set(0, -4, compactDistance);
       camera.position.copy(homePosition);
       controls.target.copy(homeTarget);
       controls.update();

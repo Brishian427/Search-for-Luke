@@ -107,7 +107,7 @@ Checked at both **1440 × 900** and **390 × 844**:
 - Player lobby and sealed-card state
 - S1 briefing and dossier cards
 - S2 repeated star placement, removal, submission, and confirmation
-- S2 3D chart drag/orbit, wheel zoom, reset view, rotating planet textures, label selection, and persisted submission
+- S2 horizontal 3D chart panning, wheel zoom, reset view, rotating planet textures, label selection, and persisted submission
 - S3 mobile tabs, team-board posting, and assistant reply
 - S7 Drop Commander selection and confirmation
 - Projector lobby, room code, QR code, and six roster panels
@@ -118,6 +118,7 @@ Checked at both **1440 × 900** and **390 × 844**:
 
 Polish fixes made during this pass:
 
+- Card dossiers now keep their existing DOM nodes between two-second polls, preventing their entrance animation from restarting and visibly flickering.
 - Mobile projector reveal now uses a two-column scrollable layout instead of clipping the third column.
 - Mobile question cards stack into a readable single column.
 - Mobile result tables and timelines remain reachable by scrolling.

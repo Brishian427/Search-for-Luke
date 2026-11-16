@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mission Control · Search for Luke</title><link rel="stylesheet" href="/static/style.css"></head>
+<body class="admin-body">
+  <main class="admin-shell">
+    <header class="topbar"><div><span class="kicker">CLASSROOM CONTROL</span><h1>Mission Control</h1></div><a class="ghost-button" href="/screen" target="_blank">Open projector ↗</a></header>
+    <section class="admin-hero panel"><div><span class="data-label">ROOM CODE</span><strong id="room-code">······</strong></div><div><span class="data-label">STAGE</span><strong id="stage">Lobby</strong></div><div><span class="data-label">COUNTDOWN</span><strong id="timer">--:--</strong></div></section>
+    <nav class="admin-actions panel"><button id="new">New session</button><button id="start" class="primary">Start game</button><button id="pause">Pause</button><button id="resume">Resume</button><button id="skip">Skip stage</button><a id="export" class="button-link">Export JSON</a></nav>
+    <section><div class="section-heading"><span class="kicker">LIVE ROSTER</span><span id="status">Connecting…</span></div><div id="teams" class="admin-grid"></div></section>
+  </main>
+  <script>
+    const key = new URLSearchParams(location.search).get('key') || '';
+    const q = s => document.querySelector(s);
+    async function api(path, options) { const sep = path.includes('?') ? '&' : '?'; const r = await fetch(path + sep + 'key=' + encodeURIComponent(key), options); if (!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); }
+    function time(v){ return `${String(Math.floor(v/60)).padStart(2,'0')}:${String(Math.floor(v%60)).padStart(2,'0')}` }
+    async function refresh(){ try { const s=await api('/api/admin/state'); q('#room-code').textContent=s.room_code; q('#stage').textContent=`${s.stage.id} · ${s.stage.name}`; q('#timer').textContent=time(s.clock.remaining); q('#status').textContent=s.clock.paused?'PAUSED':'LIVE'; q('#teams').innerHTML=Object.entries(s.teams).map(([id,t])=>`<article class="team-admin panel condition-${t.condition.replaceAll(' ','-').replace('+','plus').toLowerCase()}"><div class="team-admin-head"><strong>${id}</strong><span>${t.condition}</span></div><div class="roster-list">${t.joined.length?t.joined.map(p=>`<div><i></i><span>${p.name}</span><small>${p.ai?'AI':p.late?'LATE':p.seat?`SEAT ${p.seat}`:'JOINED'}</small></div>`).join(''):'<p class="muted">No one joined</p>'}</div><footer>R1 ${t.round1} · R2 ${t.round2}</footer></article>`).join(''); q('#export').href='/api/export?key='+encodeURIComponent(key); } catch(e){ q('#status').textContent=e.message; } }
+    ['new','start','pause','resume','skip'].forEach(id=>q('#'+id).onclick=async()=>{try{await api('/api/admin/'+id,{method:'POST'});refresh()}catch(e){alert(e.message)}});
+    refresh(); setInterval(refresh,1000);
+  </script>
+</body></html>

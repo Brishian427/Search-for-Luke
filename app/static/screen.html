@@ -20,6 +20,12 @@
       <div id="screen-map" class="screen-map panel"><svg viewBox="0 0 1000 600"><defs><filter id="screenGlow"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="screenCloud"><feGaussianBlur stdDeviation="18"/></filter></defs><g class="orbits"><ellipse cx="100" cy="300" rx="170" ry="105"/><ellipse cx="100" cy="300" rx="340" ry="210"/><ellipse cx="100" cy="300" rx="570" ry="340"/><ellipse cx="100" cy="300" rx="790" ry="470"/></g><path class="planned-route" d="M115 300 C290 285 520 292 700 280"/><g class="veil-cloud"><ellipse cx="860" cy="250" rx="100" ry="72"/><circle cx="815" cy="240" r="48"/><circle cx="895" cy="230" r="54"/></g><g class="screen-debris"></g><g class="screen-places"></g></svg></div>
       <div id="team-progress" class="team-progress"></div>
     </section>
+    <section id="reveal-screen" class="projector-view reveal-screen" hidden>
+      <div class="reveal-title"><span class="kicker">MISSION RECONSTRUCTION</span><h1 id="reveal-heading">Where is Luke?</h1><p id="reveal-message">Preparing drop sequence…</p></div>
+      <div id="reveal-grid" class="reveal-grid"></div>
+      <section id="reveal-results" class="reveal-results panel" hidden></section>
+      <section id="reveal-timeline" class="reveal-timeline panel" hidden></section>
+    </section>
     <section id="questions-screen" class="projector-view questions-screen" hidden><div class="questions-head"><span class="kicker">MISSION DEBRIEF</span><h1>Discussion</h1></div><div id="questions-list"></div><div id="results-strip" class="results-strip"></div></section>
   </main>
   <script src="/static/screen.js" defer></script>

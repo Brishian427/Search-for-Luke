@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from . import content, game, ai
+from . import content, game, ai, scoring
 from .database import Base, engine, get_db
 from .models import AssistantMessage, BoardPost, GameSession, Player, Submission, TeamDrop
 
@@ -315,6 +315,9 @@ def screen_state(db: Session = Depends(get_db)):
               "places": [{"id": place_id, **place} for place_id, place in content.PLACES.items()], "teams": teams}
     if stage["id"] == "S9":
         result["questions"] = content.QUESTIONS
+    if stage["id"] in {"S8", "S9"}:
+        result["truth"] = content.TRUTH
+        result["results"] = scoring.session_results(db, current_game.id)
     return result
 
 
@@ -326,6 +329,15 @@ def room_qr(request: Request, room: str):
     image.save(buffer, format="PNG")
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="image/png", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/export")
+def export_data(key: str, db: Session = Depends(get_db)):
+    check_key(key)
+    current_game = game.active_game(db)
+    payload = scoring.anonymized_export(db, current_game.id)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(payload, headers={"Content-Disposition": f'attachment; filename="search-for-luke-{current_game.room_code}.json"'})
 
 
 @app.post("/api/admin/new")

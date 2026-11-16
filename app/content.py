@@ -15,7 +15,7 @@ CANDIDATES = ["storm", "orange", "veil", "green", "red", "debris"]
 
 BRIEFING = """Luke is a scientist of the Imperium of Man, serving under the command of Guilliman during the Great Crusade. He left the planet Reach on the ship *Blue Space*, heading for the Orange Planet. His position was last confirmed at Hour 0. He was supposed to check in at Hour 36, but he never did.
 It is now Hour 48. He could be at any of the six places on the map. We can drop only two Helldiver squads, and each squad can search only the area around where it lands.
-Each of you holds one clue. Alone, it does not tell you much. Together, your clues may bring him home."""
+Each of you holds one private intelligence dossier. Its clue fragments are fixed to you and will not be reassigned. Alone, it does not tell you much. Together, your dossiers may bring him home."""
 
 CARDS = {
     "MP-A": {"role": "Mission Planner", "text": "Luke is a scientist of the Imperium of Man. This time, he flew the *Blue Space* to the Orange Planet to collect a rare mineral called spice. Spice only appears when a storm calms down, and in two days it will be gone. Luke is known for being stubborn. Once he agrees to do something, he never gives up halfway. People say his ship carries only two things: fuel, and a reason not to turn back."},
@@ -56,20 +56,18 @@ TEAMS = {
     "A5": {"condition": "AI", "members": ["Agent 1", "Agent 2", "Agent 3", "Agent 4", "Agent 5"]},
 }
 
-DEALS = {
+# A roster seat owns one immutable private dossier. These packets are based on
+# the complete roster size, never on how many people happen to be online when
+# the mission starts. If a member is absent, their packet stays unavailable.
+FIXED_CARD_PACKETS = {
     5: [["RO-A", "AS-B"], ["RO-B", "CO-A"], ["OB-A", "MP-B"], ["AS-A", "CO-B"], ["MP-A", "OB-B"]],
     4: [["RO-A", "AS-B", "OB-B"], ["RO-B", "CO-A", "MP-A"], ["OB-A", "MP-B"], ["AS-A", "CO-B"]],
-    3: [["RO-A", "AS-B", "OB-B", "AS-A"], ["RO-B", "CO-A", "MP-A"], ["OB-A", "MP-B", "CO-B"]],
-    2: [["OB-A", "RO-A", "MP-B", "CO-B", "MP-A"], ["RO-B", "AS-A", "CO-A", "AS-B", "OB-B"]],
-    1: [list(CARDS.keys())],
 }
 
-LATE_CARD_ORDER = ["AS-A", "MP-A", "RO-B", "OB-B", "CO-B", "RO-A", "CO-A", "OB-A", "MP-B", "AS-B"]
-
 STAGES = [
-    {"id": "S1", "name": "Briefing", "start": 0, "end": 60, "instruction": "Read the mission briefing and your clue cards."},
+    {"id": "S1", "name": "Briefing", "start": 0, "end": 60, "instruction": "Read the mission briefing and your private intelligence dossier."},
     {"id": "S2", "name": "First guess", "start": 60, "end": 120, "instruction": "Do not talk yet. Place 3 stars where you think Luke is."},
-    {"id": "S3", "name": "Share", "start": 120, "end": 360, "instruction": "Take turns reading your cards aloud."},
+    {"id": "S3", "name": "Share", "start": 120, "end": 360, "instruction": "Take turns reading your private dossiers aloud."},
     {"id": "S4", "name": "New log", "start": 360, "end": 420, "instruction": "A new message has arrived. Check your log."},
     {"id": "S5", "name": "Discuss", "start": 420, "end": 630, "instruction": "Discuss. You can change your mind later."},
     {"id": "S6", "name": "Second guess", "start": 630, "end": 690, "instruction": "Place your 3 stars again."},

@@ -3,6 +3,9 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const CANDIDATES = ['storm', 'orange', 'veil', 'green', 'red', 'debris'];
 const placeMeta = {reach:['Reach',100,300,'home'],storm:['Storm Zone',450,300,'storm'],orange:['Orange Planet',720,280,'orange'],veil:['the Veil',860,250,'veil'],green:['Green Planet',380,470,'green'],red:['Red Planet',300,120,'red'],debris:['Debris Belt',555,485,'debris']};
 let playerId=localStorage.getItem('luke-player-id'), currentState=null, selections=[], selectionMode=null, lastStage=null, polling=false, cardRenderKey='';
+const compactWorkspace=window.matchMedia('(max-width: 980px)');
+let workspaceView=localStorage.getItem('luke-workspace-view')||'intel';
+let lastPrimaryView=['intel','mission'].includes(workspaceView)?workspaceView:'intel';
 function sync3DMap(){if(window.starMap3D){window.starMap3D.setInteractive(!!selectionMode);window.starMap3D.setSelections(selections);}}
 window.addEventListener('star-map-select',event=>selectPlace(event.detail.id));
 window.addEventListener('star-map-3d-ready',sync3DMap);
@@ -33,13 +36,14 @@ function renderSelections(){
 }
 $('#submit-action').onclick=async()=>{try{if(selectionMode==='drop')await request(`/api/drop?player=${playerId}`,{method:'POST',body:JSON.stringify({places:selections})});else await request(`/api/stars/${selectionMode}?player=${playerId}`,{method:'POST',body:JSON.stringify({stars:selections})});showToast(selectionMode==='drop'?'Drop sites confirmed.':'Stars submitted.');await pollState();}catch(error){showToast(error.message,true);}};
 
-function renderCards(state){const key=JSON.stringify([state.team.id,state.player.seat,state.cards.map(card=>[card.id,card.role,card.text])]);if(key===cardRenderKey)return;cardRenderKey=key;if(!state.cards.length){$('#cards').innerHTML='<div class="locked-state"><span>◇</span><p>Clue cards remain sealed until mission start.</p></div>';return;}$('#cards').innerHTML=state.cards.map((card,index)=>`<article class="dossier" style="--delay:${index*110}ms"><header><span>${card.id}</span><b>${escapeHtml(card.role)}</b></header><div class="dossier-rule"></div><p>${formatText(card.text)}</p><footer>DECLASSIFIED · ${state.team.id} / SEAT ${state.player.seat||'—'}</footer></article>`).join('');}
+function renderCards(state){const key=JSON.stringify([state.team.id,state.player.seat,state.cards.map(card=>[card.id,card.role,card.text])]);if(key===cardRenderKey)return;cardRenderKey=key;if(!state.cards.length){$('#cards').innerHTML='<div class="locked-state"><span>◇</span><p>Your private dossier remains sealed until mission start.</p></div>';return;}const clues=state.cards.map(card=>`<section class="packet-clue"><div class="packet-clue-meta"><span>${card.id}</span><b>${escapeHtml(card.role)}</b></div><p>${formatText(card.text)}</p></section>`).join('');$('#cards').innerHTML=`<article class="dossier private-packet"><header><span>DOSSIER ${state.team.id}-${state.player.seat||'—'}</span><b>PRIVATE INTELLIGENCE</b></header><div class="dossier-rule"></div>${clues}<footer>FIXED ASSIGNMENT · ${state.team.id} / SEAT ${state.player.seat||'—'}</footer></article>`;}
 function renderTeam(state){$('#team-name').textContent=state.team.id==='OBS'?'Spectator':`Team ${state.team.id}`;const badge=$('#condition-badge');badge.textContent=state.team.condition;badge.className='condition-badge '+state.team.condition.toLowerCase().replaceAll(' ','-').replace('+','plus');$('#teammates').innerHTML=state.team.members.length?state.team.members.map(member=>`<div class="teammate ${state.active_seat===member.seat?'speaking':''}"><i class="${member.joined?'online':''}"></i><span>${escapeHtml(member.name)}</span><small>${member.joined?(member.late?'LATE':member.seat?`SEAT ${member.seat}`:'JOINED'):'WAITING'}</small></div>`).join(''):'<p class="muted">Observing mission.</p>';}
 function renderStage(state){
   $('#stage-label').textContent=`${state.stage.id} · ${state.stage.name.toUpperCase()}`;$('#stage-index').textContent=state.stage.id==='S0'?'00':state.stage.id.slice(1).padStart(2,'0');$('#stage-name').textContent=state.stage.name.toUpperCase();$('#instruction-text').textContent=state.stage.id==='S0'?'Waiting for the mission to begin.':state.stage.instruction;$('#countdown').textContent=state.stage.id==='S0'?'--:--':clock(state.clock.remaining);document.body.classList.toggle('paused',state.clock.paused);
   const details={S0:`Room code ${state.room_code}. Stay on this screen.`,S1:'Read carefully. Every clue may matter.',S2:'Silent round. Your choice stays private.',S3:'Follow the seat order shown below.',S4:'The message arrived for every team at the same time.',S5:'Connect the evidence on your team board.',S6:'This submission replaces your first impression.',S7:'Both squads will search only where they land.',S8:'The reconstruction is playing on the projector.',S9:'Use the questions on the main screen.'};$('#instruction-detail').textContent=details[state.stage.id]||'';
   $('#briefing').hidden=state.stage.id!=='S1';if(state.briefing)$('#briefing').innerHTML=`<span class="data-label">MISSION BRIEFING</span><div>${formatText(state.briefing)}</div>`;
   selectionMode=null;const round=state.stage.id==='S2'?1:state.stage.id==='S6'?2:null;if(round&&!state.player.spectator){selectionMode=round;if(lastStage!==state.stage.id)selections=state.submissions[String(round)]?[...state.submissions[String(round)]]:[];}if(state.stage.id==='S7'&&state.drop.commander){selectionMode='drop';if(lastStage!==state.stage.id)selections=[...state.drop.choices];}
+  $('#tab-mission').classList.toggle('needs-attention',!!selectionMode);
   $('#map-actions').hidden=!selectionMode;renderSelections();$$('.place').forEach(el=>el.classList.toggle('interactive',!!selectionMode&&CANDIDATES.includes(el.dataset.place)));
   $('#share-order').hidden=state.stage.id!=='S3';if(state.stage.id==='S3')$('#share-order').innerHTML=`<span class="data-label">READ-ALOUD ORDER</span><div>${state.team.members.filter(m=>m.joined).map(m=>`<span class="${state.active_seat===m.seat?'active':''}"><b>${m.seat}</b>${escapeHtml(m.name)}</span>`).join('')}</div>`;
   $('#team-result').hidden=!state.team_result;if(state.team_result)$('#team-result').innerHTML=`<span class="data-label">YOUR TEAM'S RESULT</span><strong>${state.team_result.success?'RESCUE SUCCESSFUL':'SEARCH INCOMPLETE'}</strong><p>Drops: ${state.team_result.drops.map(id=>placeMeta[id]?.[0]||id).join(' · ')}</p>`;
@@ -49,5 +53,20 @@ $('#board-form').onsubmit=async event=>{event.preventDefault();const input=$('#b
 $('#assistant-form').onsubmit=async event=>{event.preventDefault();const input=$('#assistant-input'),button=$('#assistant-form button');if(!input.value.trim())return;const text=input.value.trim();input.value='';button.disabled=true;button.textContent='…';try{await request(`/api/assistant?player=${playerId}`,{method:'POST',body:JSON.stringify({text})});await pollState();}catch(error){showToast(error.message,true)}finally{button.disabled=false;button.textContent='Send';}};
 function render(state){currentState=state;$('#join-view').hidden=true;$('#game-view').hidden=false;renderTeam(state);renderCards(state);renderStage(state);renderComms(state);lastStage=state.stage.id;}
 async function pollState(){if(!playerId||polling)return;polling=true;try{render(await request(`/api/state?player=${playerId}`));}catch(error){if(error.message==='Player not found'){localStorage.removeItem('luke-player-id');playerId=null;$('#join-view').hidden=false;$('#game-view').hidden=true;loadLobby();}else showToast(error.message,true);}finally{polling=false;}}
-$$('.mobile-tabs button').forEach(button=>button.onclick=()=>{$$('.mobile-tabs button').forEach(b=>b.classList.toggle('active',b===button));$$('[data-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===button.dataset.tab));});
-buildMap();if(playerId)pollState();else loadLobby(new URLSearchParams(location.search).get('room')||'');setInterval(pollState,2000);
+function setWorkspaceView(requested,remember=true){
+  let view=['intel','mission','comms'].includes(requested)?requested:'intel';
+  if(view==='comms'&&!compactWorkspace.matches)view=lastPrimaryView;
+  if(view==='intel'||view==='mission')lastPrimaryView=view;
+  workspaceView=view;
+  document.body.dataset.workspaceView=view;
+  $$('.workspace-tabs button').forEach(button=>{const selected=button.dataset.tab===view;button.classList.toggle('active',selected);button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
+  const intel=$('[data-panel="intel"]'),mission=$('[data-panel="mission"]'),comms=$('[data-panel="comms"]');
+  intel.hidden=view!=='intel';intel.classList.toggle('active',view==='intel');
+  mission.hidden=view!=='mission';mission.classList.toggle('active',view==='mission');
+  comms.classList.toggle('active',view==='comms');
+  if(remember)localStorage.setItem('luke-workspace-view',view);
+  if(view==='mission')requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+}
+$$('.workspace-tabs button').forEach(button=>{button.onclick=()=>setWorkspaceView(button.dataset.tab);button.onkeydown=event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const tabs=$$('.workspace-tabs button').filter(item=>getComputedStyle(item).display!=='none');const index=tabs.indexOf(button);const direction=event.key==='ArrowRight'?1:-1;tabs[(index+direction+tabs.length)%tabs.length].click();};});
+compactWorkspace.addEventListener('change',()=>setWorkspaceView(workspaceView,false));
+setWorkspaceView(workspaceView,false);buildMap();if(playerId)pollState();else loadLobby(new URLSearchParams(location.search).get('room')||'');setInterval(pollState,2000);

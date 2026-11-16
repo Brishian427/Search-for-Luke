@@ -65,9 +65,34 @@ def team_for_name(name: str):
     return None
 
 
+def fixed_card_assignment(team_id: str, name: str):
+    """Return the immutable roster seat and private dossier for one member."""
+    team = content.TEAMS.get(team_id)
+    if not team or name not in team["members"]:
+        return None, []
+    seat = team["members"].index(name) + 1
+    packets = content.FIXED_CARD_PACKETS[len(team["members"])]
+    return seat, packets[seat - 1]
+
+
+def assign_fixed_card_packet(player: Player) -> bool:
+    if player.spectator:
+        return False
+    seat, cards = fixed_card_assignment(player.team_id, player.name)
+    if seat is None:
+        return False
+    cards_json = json.dumps(cards)
+    changed = player.seat != seat or player.cards_json != cards_json
+    player.seat = seat
+    player.cards_json = cards_json
+    return changed
+
+
 def join_player(db: Session, game: GameSession, name: str, spectator=False, team_id=None) -> Player:
     existing = db.query(Player).filter_by(session_id=game.id, name=name).first()
     if existing:
+        if assign_fixed_card_packet(existing):
+            db.commit()
         return existing
     resolved_team = team_for_name(name) or team_id or "OBS"
     if resolved_team == "OBS":
@@ -76,49 +101,41 @@ def join_player(db: Session, game: GameSession, name: str, spectator=False, team
         id=str(uuid.uuid4()), session_id=game.id, name=name.strip()[:120], team_id=resolved_team,
         spectator=spectator, late=game.started_at is not None,
     )
-    if player.late and not player.spectator:
-        team_late_count = db.query(Player).filter_by(session_id=game.id, team_id=resolved_team, late=True).count()
-        card = content.LATE_CARD_ORDER[team_late_count % len(content.LATE_CARD_ORDER)]
-        player.cards_json = json.dumps([card])
-        occupied = [p.seat for p in db.query(Player).filter_by(session_id=game.id, team_id=resolved_team).all() if p.seat]
-        player.seat = max(occupied, default=0) + 1
+    assign_fixed_card_packet(player)
     db.add(player)
     db.commit()
     db.refresh(player)
     return player
 
 
-def deal_team(db: Session, game: GameSession, team_id: str, is_ai=False):
-    if is_ai:
-        members = content.TEAMS[team_id]["members"]
-        players = []
-        for member in members:
-            player = Player(
-                id=str(uuid.uuid4()), session_id=game.id, name=member, team_id=team_id,
-                is_ai=True, spectator=False,
-            )
-            db.add(player)
-            players.append(player)
-        db.flush()
-    else:
-        roster = content.TEAMS[team_id]["members"]
-        players = db.query(Player).filter_by(session_id=game.id, team_id=team_id, spectator=False).all()
-        players.sort(key=lambda p: roster.index(p.name) if p.name in roster else 999)
-    if not players:
-        return
-    deal = content.DEALS[min(len(players), 5)]
-    for index, player in enumerate(players[:5]):
-        player.seat = index + 1
-        player.cards_json = json.dumps(deal[index])
+def synchronize_fixed_card_packets(db: Session, game: GameSession | None = None):
+    query = db.query(Player).filter_by(spectator=False)
+    if game is not None:
+        query = query.filter_by(session_id=game.id)
+    changed = False
+    for player in query.all():
+        changed = assign_fixed_card_packet(player) or changed
+    if changed:
+        db.commit()
+
+
+def create_ai_team(db: Session, game: GameSession, team_id: str):
+    for member in content.TEAMS[team_id]["members"]:
+        player = Player(
+            id=str(uuid.uuid4()), session_id=game.id, name=member, team_id=team_id,
+            is_ai=True, spectator=False,
+        )
+        assign_fixed_card_packet(player)
+        db.add(player)
+    db.flush()
 
 
 def start_game(db: Session, game: GameSession):
     if game.started_at is not None:
         return game
-    for team_id in ["H4", "H5", "X4", "X5"]:
-        deal_team(db, game, team_id)
+    synchronize_fixed_card_packets(db, game)
     for team_id in ["A4", "A5"]:
-        deal_team(db, game, team_id, is_ai=True)
+        create_ai_team(db, game, team_id)
     game.elapsed_base = 0
     game.started_at = now_utc()
     game.paused = False

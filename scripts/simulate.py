@@ -18,16 +18,16 @@ ROSTERS = {
     "X4": ["Sam Salin", "Yi Wang", "Amber Tang", "Emely Antunes Otsuka"],
     "X5": ["Silvia Chen", "Varshini Narayanan", "Xiaoyu Li", "Mei Yang", "Tong Li"],
 }
-DEALS = {
+FIXED_CARD_PACKETS = {
     5: [["RO-A", "AS-B"], ["RO-B", "CO-A"], ["OB-A", "MP-B"], ["AS-A", "CO-B"], ["MP-A", "OB-B"]],
     4: [["RO-A", "AS-B", "OB-B"], ["RO-B", "CO-A", "MP-A"], ["OB-A", "MP-B"], ["AS-A", "CO-B"]],
 }
 CONNECTION_PAIRS = [("RO-A", "CO-A"), ("RO-B", "OB-A"), ("MP-B", "AS-B"), ("AS-A", "OB-A")]
 CANDIDATES = ["storm", "orange", "veil", "green", "red", "debris"]
 INSTRUCTIONS = {
-    "S1": "Read the mission briefing and your clue cards.",
+    "S1": "Read the mission briefing and your private intelligence dossier.",
     "S2": "Do not talk yet. Place 3 stars where you think Luke is.",
-    "S3": "Take turns reading your cards aloud.",
+    "S3": "Take turns reading your private dossiers aloud.",
     "S4": "A new message has arrived. Check your log.",
     "S5": "Discuss. You can change your mind later.",
     "S6": "Place your 3 stars again.",
@@ -103,17 +103,18 @@ class SessionTest:
             time.sleep(1.5)
         raise AssertionError(f"timed out waiting for {stage_id}; last stage was {last}")
 
-    def verify_deals(self, states: list[dict]):
+    def verify_fixed_card_packets(self, states: list[dict]):
         by_name = {state["player"]["name"]: state for state in states}
         for team_id, roster in ROSTERS.items():
-            prestart = [name for name in roster if name not in {"Yinyuan Chen", "Tong Li"}]
-            deal = DEALS[len(prestart)]
-            for seat, name in enumerate(prestart):
+            joined = [name for name in roster if name != "Yinyuan Chen"]
+            packets = FIXED_CARD_PACKETS[len(roster)]
+            for name in joined:
+                seat = roster.index(name)
                 cards = [card["id"] for card in by_name[name]["cards"]]
-                assert cards == deal[seat], f"wrong deal for {name}: {cards}"
+                assert cards == packets[seat], f"wrong fixed packet for {name}: {cards}"
+                assert by_name[name]["player"]["seat"] == seat + 1, f"wrong fixed seat for {name}"
                 for left, right in CONNECTION_PAIRS:
                     assert not ({left, right} <= set(cards)), f"connection pair held by {name}"
-        assert [card["id"] for card in by_name["Tong Li"]["cards"]] == ["AS-A"]
 
     def post_stars(self, round_no: int, stars: list[str]):
         for player in self.players:
@@ -134,7 +135,7 @@ class SessionTest:
         self.join(room, "X5", "Tong Li", late=True)
 
         states = self.wait_for_stage("S1", 8)
-        self.verify_deals(states)
+        self.verify_fixed_card_packets(states)
 
         states = self.wait_for_stage("S2", 12)
         self.post_stars(1, ["storm", "green", "veil"])

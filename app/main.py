@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from . import content, game, ai, scoring
-from .database import Base, engine, get_db
+from .database import Base, SessionLocal, engine, get_db
 from .models import AssistantMessage, BoardPost, GameSession, Player, Submission, TeamDrop
 
 ROOT = Path(__file__).resolve().parent
@@ -46,6 +46,8 @@ class DropBody(BaseModel):
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        game.synchronize_fixed_card_packets(db)
 
 
 @app.on_event("startup")

@@ -1,6 +1,6 @@
 # Search for Luke — Test Report
 
-Date: 2026-11-15 (America/Chicago)  
+Date: 2026-11-16 (America/Chicago)  
 Result: **PASS**
 
 ## Test environment
@@ -17,19 +17,20 @@ Result: **PASS**
 Command:
 
 ```text
-python scripts/simulate.py --base-url http://127.0.0.1:8000 --admin-key test-key
+python scripts/simulate.py --base-url http://127.0.0.1:8011 --admin-key fixed-test-key
 ```
 
-Result: **PASS** in 85.35 seconds.
+Result: **PASS** in 84.98 seconds.
 
 | Check | Result |
 | --- | --- |
 | Virtual roster | 18 represented; 17 connected |
-| Deliberate H5 absence | Yinyuan Chen never joined; H5 received the four-player deal |
-| Late join | Tong Li joined X5 after Start and received the first late card (`AS-A`) |
+| Deliberate H5 absence | Yinyuan Chen never joined; the fixed seat-5 dossier stayed sealed and was not reassigned |
+| Late join | Tong Li joined X5 after Start and received the fixed X5 seat-5 dossier (`MP-A`, `OB-B`) |
 | Stage polling | 60 complete browser-like polling cycles through S1–S9 |
 | Stage/instruction agreement | Every connected player saw the expected stage and instruction |
-| Card deals | Exact deal tables matched; no player held both sides of a two-card connection pair |
+| Card ownership | Every connected player received the immutable dossier for their roster seat; no online-count redistribution occurred |
+| Player dossier UI | One private dossier rendered per player, with its fixed clue fragments grouped inside |
 | Truth leakage | No player state contained `truth` before S8 |
 | Minute-6 event | Present for every player in the same S4 polling cycle |
 | Submission locks | Round 1 rejected after S2; round 2 rejected after S6 |
@@ -39,7 +40,7 @@ Result: **PASS** in 85.35 seconds.
 | Reveal scoring | Success, both Veil shares, and mean Brier scores matched an independent recalculation from raw submissions |
 | Export privacy | All roster names absent; players referenced by team-seat codes |
 
-Final test room: `IJ6DHD`.
+Final test room: `Y3HGNV`.
 
 ## Load test
 

@@ -7,6 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 5l27 27-27 27L5 32z' fill='%230e1117' stroke='%233cc2b8' stroke-width='4'/%3E%3Cpath d='M32 20l3.5 8.5L44 32l-8.5 3.5L32 44l-3.5-8.5L20 32l8.5-3.5z' fill='%233cc2b8'/%3E%3C/svg%3E">
   <title>Search for Luke</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/workspace.css">
   <script type="importmap">
     {"imports":{"three":"/static/vendor/three/three.module.js","three/addons/":"/static/vendor/three/addons/"}}
   </script>
@@ -32,14 +33,18 @@
       <div class="stage-chip"><i></i><span id="stage-label">S0 · LOBBY</span></div>
       <div class="clock"><span>STAGE TIME</span><strong id="countdown">--:--</strong></div>
     </header>
-    <nav class="mobile-tabs" aria-label="Screen sections"><button data-tab="intel" class="active">Intel</button><button data-tab="mission">Mission</button><button data-tab="comms">Comms</button></nav>
+    <nav class="workspace-tabs" role="tablist" aria-label="Player workspace">
+      <button id="tab-intel" role="tab" aria-controls="panel-intel" aria-selected="true" data-tab="intel" class="active"><span>01</span> Intelligence</button>
+      <button id="tab-mission" role="tab" aria-controls="panel-mission" aria-selected="false" data-tab="mission"><span>02</span> Navigation</button>
+      <button id="tab-comms" role="tab" aria-controls="panel-comms" aria-selected="false" data-tab="comms" class="info-tab"><span>03</span> Info</button>
+    </nav>
     <main class="game-grid">
-      <aside class="column intel-column active" data-panel="intel">
-        <section class="team-panel panel"><div class="team-heading"><div><span class="data-label">YOUR UNIT</span><h2 id="team-name">—</h2></div><span id="condition-badge" class="condition-badge">—</span></div><div id="teammates" class="teammates"></div></section>
-        <div class="column-title"><span>YOUR INTELLIGENCE</span><i></i></div>
-        <section id="cards" class="cards"><div class="locked-state"><span>◇</span><p>Clue cards remain sealed until mission start.</p></div></section>
-      </aside>
-      <section class="column mission-column" data-panel="mission">
+      <div class="workspace-stack">
+      <section id="panel-intel" class="column intel-column active" role="tabpanel" aria-labelledby="tab-intel" data-panel="intel">
+        <div class="view-heading"><div><span class="data-label">PRIVATE WORKSPACE</span><h1>Your intelligence</h1></div><p>Only you can see this fixed dossier. Switch to Navigation when you are ready to use the chart.</p></div>
+        <section id="cards" class="cards"><div class="locked-state"><span>◇</span><p>Your private dossier remains sealed until mission start.</p></div></section>
+      </section>
+      <section id="panel-mission" class="column mission-column" role="tabpanel" aria-labelledby="tab-mission" data-panel="mission" hidden>
         <article class="instruction panel"><div class="instruction-index" id="stage-index">00</div><div><span class="data-label" id="stage-name">LOBBY</span><h2 id="instruction-text">Waiting for the mission to begin.</h2><p id="instruction-detail">Stay on this screen. The mission will begin automatically.</p></div></article>
         <section id="briefing" class="briefing panel" hidden></section>
         <section class="map-panel panel">
@@ -60,7 +65,9 @@
         </section>
         <section id="share-order" class="share-order panel" hidden></section>
       </section>
-      <aside class="column comms-column" data-panel="comms">
+      </div>
+      <aside id="panel-comms" class="column comms-column" role="tabpanel" aria-labelledby="tab-comms" data-panel="comms">
+        <section class="team-panel panel"><div class="team-heading"><div><span class="data-label">YOUR UNIT</span><h2 id="team-name">—</h2></div><span id="condition-badge" class="condition-badge">—</span></div><div id="teammates" class="teammates"></div></section>
         <section class="log-panel panel"><div class="panel-heading"><div><span class="data-label">MISSION LOG</span><strong>INCOMING DATA</strong></div><span class="live-dot">LIVE</span></div><div id="mission-log" class="mission-log"></div></section>
         <section id="board-panel" class="board-panel panel" hidden><div class="panel-heading"><div><span class="data-label">TEAM BOARD</span><strong>SHARED FINDINGS</strong></div></div><form id="board-form"><input id="board-input" maxlength="600" placeholder="Share a finding with your team"><button aria-label="Post finding">↗</button></form><div id="board-feed" class="board-feed"></div></section>
         <section id="assistant-panel" class="assistant-panel panel" hidden><div class="panel-heading"><div><span class="data-label">MISSION ASSISTANT</span><strong>PRIVATE AI CHANNEL</strong></div><span class="ai-status">AI</span></div><div id="assistant-feed" class="assistant-feed"><p>Ask about your cards or what to ask your teammates.</p></div><form id="assistant-form"><input id="assistant-input" maxlength="800" placeholder="Ask your assistant…"><button>Send</button></form></section>

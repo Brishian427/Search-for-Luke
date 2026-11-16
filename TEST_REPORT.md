@@ -107,7 +107,7 @@ Checked at both **1440 × 900** and **390 × 844**:
 - Player lobby and sealed-card state
 - S1 briefing and dossier cards
 - S2 repeated star placement, removal, submission, and confirmation
-- S2 horizontal 3D chart panning, wheel zoom, reset view, rotating planet textures, label selection, and persisted submission
+- S2 free 3D camera orbit around Reach, wheel zoom, reset view, rotating planet textures, label selection, and persisted submission
 - S3 mobile tabs, team-board posting, and assistant reply
 - S7 Drop Commander selection and confirmation
 - Projector lobby, room code, QR code, and six roster panels

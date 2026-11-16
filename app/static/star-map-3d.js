@@ -12,8 +12,8 @@ if (host && mount && labelLayer) {
     scene.fog = new THREE.FogExp2(0x0b1017, 0.0042);
 
     const camera = new THREE.PerspectiveCamera(43, 5 / 3, 0.1, 900);
-    const homePosition = new THREE.Vector3(0, -4, 176);
-    const homeTarget = new THREE.Vector3(0, -4, 0);
+    const homePosition = new THREE.Vector3(-67, 17, 200);
+    const homeTarget = new THREE.Vector3(-67, -8, 10);
     camera.position.copy(homePosition);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -30,11 +30,13 @@ if (host && mount && labelLayer) {
     controls.enableDamping = true;
     controls.dampingFactor = 0.065;
     controls.zoomSpeed = 0.78;
-    controls.enableRotate = false;
+    controls.rotateSpeed = 0.62;
+    controls.enableRotate = true;
     controls.enablePan = false;
-    controls.minDistance = 88;
-    controls.maxDistance = 250;
-    controls.maxTargetRadius = 42;
+    controls.minDistance = 110;
+    controls.maxDistance = 420;
+    controls.minPolarAngle = 0.12;
+    controls.maxPolarAngle = Math.PI - 0.12;
     controls.zoomToCursor = false;
     controls.update();
     controls.saveState();
@@ -295,28 +297,10 @@ if (host && mount && labelLayer) {
     const pointer = new THREE.Vector2();
     let pointerStart = null;
     renderer.domElement.addEventListener('pointerdown', event => {
-      pointerStart = {
-        x: event.clientX,
-        y: event.clientY,
-        time: performance.now(),
-        cameraX: camera.position.x,
-        targetX: controls.target.x
-      };
-      renderer.domElement.setPointerCapture?.(event.pointerId);
+      pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() };
     });
     renderer.domElement.addEventListener('pointermove', event => {
-      if (pointerStart && event.buttons) {
-        const distance = camera.position.distanceTo(controls.target);
-        const worldPerPixel = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.max(1, mount.clientHeight);
-        const rawOffset = -(event.clientX - pointerStart.x) * worldPerPixel;
-        const targetX = THREE.MathUtils.clamp(pointerStart.targetX + rawOffset, -34, 34);
-        const appliedOffset = targetX - pointerStart.targetX;
-        camera.position.x = pointerStart.cameraX + appliedOffset;
-        controls.target.x = targetX;
-        controls.update();
-        return;
-      }
-      if (!interactive) return;
+      if (!interactive || event.buttons) return;
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
@@ -361,8 +345,8 @@ if (host && mount && labelLayer) {
 
     let viewInitialized = false;
     function resetView() {
-      const compactDistance = camera.aspect < 1.12 ? 214 : 176;
-      homePosition.set(0, -4, compactDistance);
+      const compactDistance = mount.clientWidth < 600 ? 180 : 190;
+      homePosition.set(homeTarget.x, homeTarget.y + 25, homeTarget.z + compactDistance);
       camera.position.copy(homePosition);
       controls.target.copy(homeTarget);
       controls.update();
@@ -371,7 +355,10 @@ if (host && mount && labelLayer) {
     function resize() {
       const width = Math.max(1, mount.clientWidth);
       const height = Math.max(1, mount.clientHeight);
-      camera.aspect = width / height;
+      const reachScreenRatio = width < 600 ? 0.24 : 0.27;
+      const fullWidth = Math.round(width * 2 * (1 - reachScreenRatio));
+      camera.aspect = fullWidth / height;
+      camera.setViewOffset(fullWidth, height, fullWidth - width, 0, width, height);
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
       if (!viewInitialized && width > 100 && height > 100) {

@@ -2,7 +2,7 @@
 
 A real-time classroom investigation for roughly 18 players. FastAPI serves the player, projector, and facilitator screens; clients poll every two seconds; SQLite is used locally and Postgres in production. There is no frontend build step.
 
-The player navigation chart is an interactive Three.js scene: drag horizontally to pan, scroll or pinch to zoom, and tap a labeled body to place a star or choose a drop site. The camera stays on a horizontal chart plane while planet textures rotate in place. Orbital revolution and phase simulation are intentionally not modeled yet. Three.js 0.187.0 and OrbitControls are vendored under `app/static/vendor/three`, so the chart does not depend on a CDN during class.
+The player navigation chart is an interactive Three.js scene: drag to orbit the camera around Reach, scroll or pinch to zoom, and tap a labeled body to place a star or choose a drop site. The initial composition is horizontal, but the scene has no locked viewing direction; planet textures rotate in place. Orbital revolution and phase simulation are intentionally not modeled yet. Three.js 0.187.0 and OrbitControls are vendored under `app/static/vendor/three`, so the chart does not depend on a CDN during class.
 
 ## Local setup
 

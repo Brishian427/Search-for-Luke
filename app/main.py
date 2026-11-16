@@ -87,6 +87,13 @@ def get_player(db: Session, player_id: str) -> Player:
     return row
 
 
+def require_active_game(db: Session, candidate: GameSession, detail: str = "This session has ended") -> GameSession:
+    """Reject stale rooms after the facilitator creates a new session."""
+    if candidate.id != game.active_game(db).id:
+        raise HTTPException(status_code=409, detail=detail)
+    return candidate
+
+
 def stage_rank(stage_id: str) -> int:
     return int(stage_id[1:]) if stage_id.startswith("S") else 0
 
@@ -168,7 +175,7 @@ def health():
 
 @app.get("/api/lobby")
 def lobby(room: str | None = None, db: Session = Depends(get_db)):
-    current_game = get_game_by_room(db, room) if room else game.active_game(db)
+    current_game = require_active_game(db, get_game_by_room(db, room)) if room else game.active_game(db)
     joined = db.query(Player).filter_by(session_id=current_game.id).all()
     joined_names = {row.name for row in joined}
     teams = []
@@ -183,7 +190,7 @@ def lobby(room: str | None = None, db: Session = Depends(get_db)):
 
 @app.post("/api/join")
 def join(body: JoinBody, db: Session = Depends(get_db)):
-    current_game = get_game_by_room(db, body.room_code)
+    current_game = require_active_game(db, get_game_by_room(db, body.room_code))
     team_id = game.team_for_name(body.name)
     spectator = body.spectator or team_id is None
     player = game.join_player(db, current_game, body.name, spectator=spectator, team_id=body.team_id)
@@ -192,7 +199,9 @@ def join(body: JoinBody, db: Session = Depends(get_db)):
 
 @app.get("/api/state")
 def state(player: str, db: Session = Depends(get_db)):
-    return player_state(db, get_player(db, player))
+    person = get_player(db, player)
+    require_active_game(db, db.get(GameSession, person.session_id), detail="Session replaced")
+    return player_state(db, person)
 
 
 @app.post("/api/stars/{round_no}")

@@ -5,9 +5,11 @@ const host = document.querySelector('#star-map');
 const mount = document.querySelector('#star-map-3d');
 const labelLayer = document.querySelector('#map-3d-labels');
 const resetButton = document.querySelector('#reset-3d-view');
+const orbitReady = window.orbitModelReady || new Promise(resolve => window.addEventListener('orbit-model-ready', () => resolve(window.OrbitModel), { once: true }));
 
 if (host && mount && labelLayer) {
   try {
+    const orbitModel = await orbitReady;
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x0b1017, 0.0042);
 
@@ -53,22 +55,29 @@ if (host && mount && labelLayer) {
     scene.add(veilLight);
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const interactiveIds = new Set(['storm', 'orange', 'veil', 'green', 'red', 'debris']);
+    const interactiveIds = new Set(['orange', 'veil', 'green', 'red', 'debris']);
+    const whatIfIds = new Set(['reach', 'orange', 'veil', 'green', 'red', 'debris']);
     const pickTargets = [];
     const bodies = new Map();
     const labels = new Map();
     const spinners = [];
-    let interactive = false;
+    let gameInteractive = false;
+    let whatIfInteractive = false;
     let currentSelections = [];
+    let currentHour = 0;
+    let plannedRoute = null;
+    let shipMarker = null;
+    let shipLabel = null;
+    let whatIfRing = null;
 
+    const orbitPosition = id => { const point = orbitModel.positionAt(id, currentHour); return [point.x, 0, point.z]; };
     const places = {
-      reach:  { name: 'REACH',          position: [  0, 0,   0], radius: 7.3, color: '#6381a2', accent: '#a9d4ff', spin: 0.10 },
-      storm:  { name: 'STORM ZONE',     position: [ 57, 0,  12], radius: 9.3, color: '#d9b44a', accent: '#fff0a4', spin: 0.16 },
-      orange: { name: 'ORANGE PLANET',  position: [ 92, 0,   8], radius: 12,  color: '#f0a04b', accent: '#ffd39a', spin: 0.075 },
-      veil:   { name: 'THE VEIL',       position: [104, 0,  -4], radius: 11,  color: '#dde6f0', accent: '#ffffff', spin: 0.018 },
-      green:  { name: 'GREEN PLANET',   position: [-51, 0, -51], radius: 7.7, color: '#5fbf6b', accent: '#a8f2b2', spin: 0.09 },
-      red:    { name: 'RED PLANET',     position: [-39, 0,  39], radius: 7.7, color: '#e5534b', accent: '#ffaaa5', spin: 0.12 },
-      debris: { name: 'DEBRIS BELT',    position: [ 50, 0, -72], radius: 12,  color: '#8b98a9', accent: '#c9d2db', spin: 0 }
+      reach:  { name: 'REACH',          position: orbitPosition('reach'),  radius: 7.3, color: '#6381a2', accent: '#a9d4ff', spin: 0.10 },
+      orange: { name: 'ORANGE PLANET',  position: orbitPosition('orange'), radius: 12,  color: '#f0a04b', accent: '#ffd39a', spin: 0.075 },
+      veil:   { name: 'THE VEIL',       position: orbitPosition('veil'),   radius: 11,  color: '#dde6f0', accent: '#ffffff', spin: 0.018 },
+      green:  { name: 'GREEN PLANET',   position: orbitPosition('green'),  radius: 7.7, color: '#5fbf6b', accent: '#a8f2b2', spin: 0.09 },
+      red:    { name: 'RED PLANET',     position: orbitPosition('red'),    radius: 7.7, color: '#e5534b', accent: '#ffaaa5', spin: 0.12 },
+      debris: { name: 'DEBRIS BELT',    position: orbitPosition('debris'), radius: 12,  color: '#8b98a9', accent: '#c9d2db', spin: 0 }
     };
 
     function seeded(seed) {
@@ -228,6 +237,38 @@ if (host && mount && labelLayer) {
       bodies.set('debris', group);
     }
 
+    function createShipAndRange() {
+      shipMarker = new THREE.Group();
+      const hull = new THREE.Mesh(
+        new THREE.OctahedronGeometry(2.2, 0),
+        new THREE.MeshStandardMaterial({ color: 0x8be8f4, emissive: 0x2b8195, emissiveIntensity: 0.8, roughness: 0.35, metalness: 0.45 })
+      );
+      hull.scale.set(0.72, 0.72, 1.7);
+      hull.rotation.x = Math.PI / 2;
+      shipMarker.add(hull);
+      shipMarker.position.set(0, 9.5, 0);
+      scene.add(shipMarker);
+      shipLabel = document.createElement('div');
+      shipLabel.className = 'map-ship-label';
+      shipLabel.textContent = 'Last confirmed: Hour 0';
+      labelLayer.appendChild(shipLabel);
+
+      const points = [];
+      for (let step = 0; step < 128; step += 1) {
+        const angle = step / 128 * Math.PI * 2;
+        points.push(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)));
+      }
+      whatIfRing = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineDashedMaterial({ color: 0x58c4dc, dashSize: 0.045, gapSize: 0.025, transparent: true, opacity: 0.86, depthWrite: false })
+      );
+      whatIfRing.computeLineDistances();
+      whatIfRing.position.y = 1.1;
+      whatIfRing.renderOrder = 3;
+      whatIfRing.visible = false;
+      scene.add(whatIfRing);
+    }
+
     function createGrid() {
       const points = [];
       for (let x = -120; x <= 120; x += 10) points.push(x, -1.4, -120, x, -1.4, 120);
@@ -239,8 +280,9 @@ if (host && mount && labelLayer) {
 
     function createOrbits() {
       const center = new THREE.Vector3(...places.reach.position);
-      ['red', 'storm', 'green', 'orange'].forEach((id, index) => {
-        const position = new THREE.Vector3(...places[id].position);
+      ['red', 'green', 'orange'].forEach((id, index) => {
+        const body = orbitModel.bodies[id];
+        const position = new THREE.Vector3(body.x, 0, body.z);
         const radius = Math.hypot(position.x - center.x, position.z - center.z);
         const points = [];
         for (let step = 0; step < 128; step += 1) {
@@ -262,20 +304,21 @@ if (host && mount && labelLayer) {
     }
 
     function createRoute() {
-      const routePoint = id => {
-        const point = new THREE.Vector3(...places[id].position);
-        point.y = 0.7;
-        return point;
-      };
-      const curve = new THREE.CatmullRomCurve3([
-        routePoint('reach'),
-        routePoint('storm'),
-        routePoint('orange')
-      ]);
-      const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(70));
-      const route = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x8ca1b8, dashSize: 2.4, gapSize: 2.1, transparent: true, opacity: 0.65 }));
-      route.computeLineDistances();
-      scene.add(route);
+      plannedRoute = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0x8ca1b8, dashSize: 2.4, gapSize: 2.1, transparent: true, opacity: 0.65 }));
+      scene.add(plannedRoute);
+      updateRoute();
+    }
+
+    function updateRoute() {
+      if (!plannedRoute) return;
+      const reach = bodies.get('reach')?.position || new THREE.Vector3(...places.reach.position);
+      const orange = bodies.get('orange')?.position || new THREE.Vector3(...places.orange.position);
+      const midpoint = reach.clone().lerp(orange, 0.5);
+      midpoint.y = 1.2;
+      const curve = new THREE.QuadraticBezierCurve3(reach.clone().setY(0.7), midpoint, orange.clone().setY(0.7));
+      plannedRoute.geometry.dispose();
+      plannedRoute.geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(70));
+      plannedRoute.computeLineDistances();
     }
 
     function createLabel(id, config) {
@@ -286,7 +329,7 @@ if (host && mount && labelLayer) {
       button.setAttribute('aria-label', config.name);
       button.addEventListener('click', event => {
         event.stopPropagation();
-        if (interactive && interactiveIds.has(id)) select(id);
+        if (canSelect(id)) select(id);
       });
       labelLayer.appendChild(button);
       labels.set(id, button);
@@ -296,13 +339,18 @@ if (host && mount && labelLayer) {
     createOrbits();
     createStars();
     createRoute();
-    ['reach', 'storm', 'orange', 'green', 'red'].forEach((id, index) => createPlanet(id, places[id], index));
+    ['reach', 'orange', 'green', 'red'].forEach((id, index) => createPlanet(id, places[id], index));
     createVeil();
     createDebris();
+    createShipAndRange();
     Object.entries(places).forEach(([id, config]) => createLabel(id, config));
 
     function select(id) {
       window.dispatchEvent(new CustomEvent('star-map-select', { detail: { id } }));
+    }
+
+    function canSelect(id) {
+      return (whatIfInteractive && whatIfIds.has(id)) || (gameInteractive && interactiveIds.has(id));
     }
 
     function placeFromObject(object) {
@@ -321,18 +369,18 @@ if (host && mount && labelLayer) {
       pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() };
     });
     renderer.domElement.addEventListener('pointermove', event => {
-      if (!interactive || event.buttons) return;
+      if (!(gameInteractive || whatIfInteractive) || event.buttons) return;
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(pickTargets, true)[0];
-      renderer.domElement.style.cursor = hit && interactiveIds.has(placeFromObject(hit.object)) ? 'pointer' : 'grab';
+      renderer.domElement.style.cursor = hit && canSelect(placeFromObject(hit.object)) ? 'pointer' : 'grab';
     });
     renderer.domElement.addEventListener('pointerup', event => {
       if (!pointerStart) return;
       const start = pointerStart;
       pointerStart = null;
-      if (!interactive) return;
+      if (!(gameInteractive || whatIfInteractive)) return;
       const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
       const elapsed = performance.now() - start.time;
       if (moved > 7 || elapsed > 650) return;
@@ -341,7 +389,7 @@ if (host && mount && labelLayer) {
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(pickTargets, true)[0];
       const id = hit ? placeFromObject(hit.object) : null;
-      if (id && interactiveIds.has(id)) select(id);
+      if (id && canSelect(id)) select(id);
     });
     renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
 
@@ -349,7 +397,11 @@ if (host && mount && labelLayer) {
       const width = mount.clientWidth;
       const height = mount.clientHeight;
       const vector = new THREE.Vector3();
-      const screenOffsets = { orange: [-16, 2], veil: [18, -10] };
+      const orangeVeilClose = bodies.get('orange').position.distanceTo(bodies.get('veil').position) < 34;
+      const compact = width < 600;
+      const screenOffsets = orangeVeilClose
+        ? { orange: [compact ? -86 : -72, 14], veil: [compact ? 86 : 72, -16] }
+        : { orange: [-16, 2], veil: [18, -10] };
       labels.forEach((label, id) => {
         const body = bodies.get(id);
         vector.copy(body.position);
@@ -365,6 +417,18 @@ if (host && mount && labelLayer) {
         const x = Math.max(labelPadding, Math.min(width - labelPadding, rawX));
         label.style.transform = `translate(-50%,-50%) translate(${x}px,${rawY}px)`;
       });
+      if (shipLabel && shipMarker) {
+        vector.copy(shipMarker.position);
+        vector.y += 5;
+        vector.project(camera);
+        const visible = shipMarker.visible && vector.z > -1 && vector.z < 1;
+        shipLabel.hidden = !visible;
+        if (visible) {
+          const x = Math.max(90, Math.min(width - 90, (vector.x * 0.5 + 0.5) * width));
+          const y = (-vector.y * 0.5 + 0.5) * height;
+          shipLabel.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
+        }
+      }
     }
 
     let viewInitialized = false;
@@ -395,15 +459,53 @@ if (host && mount && labelLayer) {
 
     resetButton?.addEventListener('click', resetView);
 
-    function setInteractive(value) {
-      interactive = value;
-      mount.classList.toggle('is-interactive', interactive);
+    function setInteractionMode({ game = false, whatIf = false } = {}) {
+      gameInteractive = !!game;
+      whatIfInteractive = !!whatIf;
+      mount.classList.toggle('is-interactive', gameInteractive || whatIfInteractive);
       labels.forEach((label, id) => {
-        const enabled = interactive && interactiveIds.has(id);
+        const enabled = canSelect(id);
         label.classList.toggle('is-interactive', enabled);
         label.tabIndex = enabled ? 0 : -1;
         label.setAttribute('aria-disabled', String(!enabled));
       });
+    }
+
+    function setInteractive(value) {
+      setInteractionMode({ game: value, whatIf: false });
+    }
+
+    function setHour(value) {
+      currentHour = Math.max(0, Math.min(48, Number(value) || 0));
+      bodies.forEach((body, id) => {
+        const point = orbitModel.positionAt(id, currentHour);
+        body.position.x = point.x;
+        body.position.z = point.z;
+      });
+      const orange = orbitModel.positionAt('orange', currentHour);
+      orangeLight.position.set(orange.x, 12, orange.z + 14);
+      if (shipMarker) {
+        const reach = orbitModel.positionAt('reach', currentHour);
+        shipMarker.position.set(reach.x, 9.5, reach.z);
+        shipMarker.visible = currentHour === 0;
+      }
+      updateRoute();
+    }
+
+    function setWhatIfRing(state, hour = currentHour) {
+      if (!whatIfRing || !state || Number(hour) < Number(state.startHour)) {
+        if (whatIfRing) whatIfRing.visible = false;
+        return;
+      }
+      const radius = orbitModel.ship_speed * (Number(hour) - Number(state.startHour));
+      whatIfRing.position.set(Number(state.x), 1.1, Number(state.z));
+      whatIfRing.scale.set(radius, 1, radius);
+      whatIfRing.visible = radius > 0;
+    }
+
+    function getBodyPosition(id) {
+      const body = bodies.get(id);
+      return body ? { x: body.position.x, y: body.position.y, z: body.position.z } : null;
     }
 
     function setSelections(values = []) {
@@ -431,7 +533,8 @@ if (host && mount && labelLayer) {
     }
     animate();
 
-    window.starMap3D = { setInteractive, setSelections, resetView, ready: true };
+    setHour(0);
+    window.starMap3D = { setInteractive, setInteractionMode, setSelections, setHour, setWhatIfRing, getBodyPosition, resetView, ready: true };
     host.classList.add('webgl-ready');
     window.dispatchEvent(new CustomEvent('star-map-3d-ready'));
   } catch (error) {

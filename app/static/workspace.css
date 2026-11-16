@@ -55,6 +55,7 @@
 .view-heading h1 { font-size: clamp(25px, 2.4vw, 38px); letter-spacing: -.035em; margin: 4px 0 0; text-transform: none; }
 .view-heading p { max-width: 500px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: right; }
 .intel-column, .mission-column, .cards { min-width: 0; }
+.mission-sidebar { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 .private-packet { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 18px; padding: clamp(18px, 2.2vw, 32px); }
 .private-packet > header,
@@ -64,6 +65,23 @@
 .private-packet .packet-clue + .packet-clue { border-top: 0; border-left: 1px solid rgba(88, 196, 220, .14); padding-top: 6px; padding-left: 18px; }
 .private-packet .packet-clue p { font-size: clamp(14px, 1.1vw, 18px); line-height: 1.55; }
 .mission-column .star-map-3d { height: clamp(430px, calc(100vh - 315px), 720px); min-height: 430px; }
+
+.chart-tools { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 18px; padding: 10px 14px 9px; border-top: 1px solid var(--line); background: #111720; }
+.timeline-heading, .timeline-endpoints, .what-if-control { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.timeline-heading label { font: 600 9px 'JetBrains Mono'; letter-spacing: .16em; color: var(--muted); }
+.timeline-heading output { font: 600 12px 'JetBrains Mono'; color: var(--cyan); }
+.timeline-control input { width: 100%; height: 24px; margin: 1px 0; accent-color: var(--teal); cursor: ew-resize; touch-action: pan-x; }
+.timeline-control input::-webkit-slider-thumb { width: 22px; height: 22px; }
+.timeline-control input::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--teal); }
+.timeline-endpoints { font: 600 8px 'JetBrains Mono'; letter-spacing: .06em; color: #6f7e91; }
+.what-if-control { align-self: center; justify-content: flex-start; flex-wrap: wrap; }
+.what-if-control button { border: 1px solid #3a495a; border-radius: 7px; background: #19222d; color: var(--text); padding: 8px 10px; font: 600 9px 'JetBrains Mono'; cursor: pointer; }
+.what-if-control button:hover, .what-if-control button:focus-visible, .what-if-control button.active { border-color: var(--cyan); color: var(--cyan); outline: 0; }
+.what-if-control span { flex: 1 1 170px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.what-if-ring-svg { fill: none; stroke: var(--cyan); stroke-width: 2; stroke-dasharray: 9 6; opacity: .8; pointer-events: none; }
+.map-ship { fill: var(--cyan); stroke: #d9f8ff; stroke-width: 1.5; pointer-events: none; filter: drop-shadow(0 0 8px rgba(88,196,220,.85)); }
+.map-ship text { fill: var(--text); stroke: #0b1017; stroke-width: 4px; paint-order: stroke; text-anchor: middle; font: 600 12px 'JetBrains Mono'; letter-spacing: .04em; }
+.map-ship-label { position: absolute; z-index: 5; padding: 4px 7px; border: 1px solid rgba(88,196,220,.65); border-radius: 5px; background: rgba(9,16,23,.86); color: #d9f8ff; font: 600 9px 'JetBrains Mono'; letter-spacing: .04em; white-space: nowrap; pointer-events: none; }
 
 /* Desktop workspace must fit inside the viewport at 100% browser zoom. */
 @media (min-width: 981px) {
@@ -75,12 +93,19 @@
   .workspace-stack,
   .workspace-stack > .column.active { height: 100%; min-height: 0; }
   .intel-column { overflow: auto; padding-right: 2px; scrollbar-width: thin; scrollbar-color: #344252 transparent; }
-  .mission-column { overflow: hidden; }
-  .mission-column > .instruction,
-  .mission-column > .briefing,
-  .mission-column > .share-order { flex: 0 0 auto; }
+  .workspace-stack > .mission-column.active { display: grid; grid-template-columns: clamp(210px, 20%, 280px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+  .mission-sidebar { min-height: 0; overflow: auto; padding-right: 2px; scrollbar-width: thin; scrollbar-color: #344252 transparent; }
+  .mission-sidebar > .instruction,
+  .mission-sidebar > .briefing,
+  .mission-sidebar > .share-order { flex: 0 0 auto; }
+  .mission-sidebar .instruction { grid-template-columns: 40px minmax(0, 1fr); padding: 16px 14px; }
+  .mission-sidebar .instruction-index { font-size: 28px; }
+  .mission-sidebar .instruction h2 { font-size: clamp(16px, 1.25vw, 19px); }
+  .mission-sidebar .briefing { padding: 17px 15px; }
+  .mission-sidebar .briefing > div { font-size: 13px; line-height: 1.5; }
   .mission-column > .map-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .mission-column .map-toolbar,
+  .mission-column .chart-tools,
   .mission-column .map-actions,
   .mission-column .team-result { flex: 0 0 auto; }
   .mission-column .star-map { flex: 1 1 auto; min-height: 0; }
@@ -105,6 +130,7 @@
   .mobile-tabs { display: none; }
   .game-grid { padding: 10px; }
   .mission-column .star-map-3d { height: min(62vh, 560px); min-height: 390px; }
+  .chart-tools { grid-template-columns: 1fr; gap: 10px; }
 }
 
 @media (max-width: 640px) {
@@ -115,4 +141,6 @@
   .private-packet { grid-template-columns: 1fr; padding: 18px; }
   .private-packet .packet-clue + .packet-clue { border-left: 0; border-top: 1px solid rgba(88, 196, 220, .14); padding-left: 0; padding-top: 15px; }
   .mission-column .star-map-3d { height: 54vh; min-height: 350px; }
+  .chart-tools { padding: 11px 12px; }
+  .what-if-control button { min-height: 42px; }
 }

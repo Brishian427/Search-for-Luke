@@ -17,17 +17,17 @@ Result: **PASS**
 Command:
 
 ```text
-python scripts/simulate.py --base-url http://127.0.0.1:8011 --admin-key fixed-test-key
+python scripts/simulate.py --base-url http://127.0.0.1:8012 --admin-key phase-key
 ```
 
-Result: **PASS** in 84.98 seconds.
+Result: **PASS** in 85.33 seconds.
 
 | Check | Result |
 | --- | --- |
 | Virtual roster | 18 represented; 17 connected |
 | Deliberate H5 absence | Yinyuan Chen never joined; the fixed seat-5 dossier stayed sealed and was not reassigned |
 | Late join | Tong Li joined X5 after Start and received the fixed X5 seat-5 dossier (`MP-A`, `OB-B`) |
-| Stage polling | 60 complete browser-like polling cycles through S1–S9 |
+| Stage polling | 62 complete browser-like polling cycles through S1–S9 |
 | Stage/instruction agreement | Every connected player saw the expected stage and instruction |
 | Card ownership | Every connected player received the immutable dossier for their roster seat; no online-count redistribution occurred |
 | Player dossier UI | One private dossier rendered per player, with its fixed clue fragments grouped inside |
@@ -40,23 +40,23 @@ Result: **PASS** in 84.98 seconds.
 | Reveal scoring | Success, both Veil shares, and mean Brier scores matched an independent recalculation from raw submissions |
 | Export privacy | All roster names absent; players referenced by team-seat codes |
 
-Final test room: `Y3HGNV`.
+Final test room: `05T3CZ`.
 
 ## Load test
 
 Command:
 
 ```text
-python scripts/load.py --base-url http://127.0.0.1:8000 --admin-key test-key
+python scripts/load.py --base-url http://127.0.0.1:8012 --admin-key phase-key
 ```
 
 Result: **PASS**.
 
 - 50 legal virtual roster clients across three paused S2 sessions
 - 200 measured requests
-- P95 latency: **0.6137 seconds**
-- Maximum latency: **0.6984 seconds**
-- All 50 star submissions sent within **0.7212 seconds**
+- P95 latency: **0.2688 seconds**
+- Maximum latency: **0.2896 seconds**
+- All 50 star submissions sent within **0.3041 seconds**
 - Persisted submissions: **50/50**
 - Errors: **0**
 
@@ -74,9 +74,9 @@ Result: **PASS**.
 
 - Stage before shutdown: S5
 - Stage after restart: S5
-- Clock before shutdown: 428.22 game seconds
-- Clock after restart: 460.24 game seconds
-- Process restart time: 2.51 real seconds
+- Clock before shutdown: 428.15 game seconds
+- Clock after restart: 454.66 game seconds
+- Process restart time: 2.32 real seconds
 - Cards, first-round stars, and team-board findings preserved
 - Existing player continued posting without rejoining
 
@@ -85,13 +85,13 @@ Result: **PASS**.
 Command:
 
 ```text
-python scripts/live_check.py --base-url http://127.0.0.1:8000 --admin-key test-key
+python scripts/live_check.py --base-url http://127.0.0.1:8013 --admin-key phase-live-key
 ```
 
 Result: **PASS** with a real key and `deepseek-flash`.
 
 - Five simultaneous Human + AI assistant messages returned successfully
-- Assistant latencies: 4541, 4234, 3509, 2863, and 2303 ms
+- Assistant latencies: 2906, 2372, 2068, 1891, and 2213 ms
 - Nine AI agents completed both star rounds
 - A4 and A5 completed card sharing, two discussion rounds, final votes, reveal, and questions
 - 18 AI discussion posts persisted
@@ -116,6 +116,13 @@ Checked at both **1440 × 900** and **390 × 844**:
 - S8 2 × 3 team reveal, drop-pod landing, result table, and board timeline
 - S9 questions and six-team result strip
 - Facilitator lobby, controls, live roster, and mobile stacking
+- Timeline slider drag and direct Hour 0 / 38 / 48 checks; Orange positions matched the shared model within ±0.2
+- Star placement remained clickable after moving the timeline
+- The ship marker appeared only at Hour 0
+- A Green Planet Hour-26 what-if ring grew to 60 units at Hour 29, hid before its start hour, remained private in player-scoped local storage, and cleared on Reset
+- Storm Zone was absent from both the WebGL chart and SVG fallback
+- At the Hour-38 Orange/Veil conjunction, automatic label separation kept both bodies independently clickable on mobile
+- Desktop navigation uses a narrow left instruction rail and a larger full-height chart; mobile returns to a vertical layout with no horizontal overflow
 
 Polish fixes made during this pass:
 
@@ -127,11 +134,24 @@ Polish fixes made during this pass:
 - Reduced-motion handling remains active for all reveal and glow animation.
 - The player chart now uses a locally vendored Three.js scene with an SVG fallback; desktop and 390 × 844 framing both keep all selectable bodies reachable.
 
+## Orbital model and paper backup
+
+Result: **PASS**.
+
+- One definition, `app/static/orbit-model.json`, is consumed by Python prompt/test code and browser chart code.
+- Required model checks passed: Orange at Hours 0, 38, and 48; Green at Hour 26; Veil fixed at all hours.
+- Ring sanity check passed: Green Hour 26 to Hour 29 gives radius 60; the fixed Debris Belt is about 110.3 units away.
+- Both live system prompts include the generated chart table for Hours 0, 8, 14, 20, 26, 29, 30, 34, 36, 38, 40, and 48.
+- No tool/function schema is sent to DeepSeek.
+- Playwright PNG backups exist in `backup/chart_hours/` for Hours 00, 08, 14, 20, 26, 29, 34, 38, 40, and 48.
+
 ## Static and deployment checks
 
 Result: **PASS** for all checks available in this environment.
 
 - `python -m compileall -q app scripts`
+- `python -m unittest discover -s tests -v` (5 passed)
+- `node --check app/static/orbit-model.js`
 - `node --check app/static/player.js`
 - `node --check app/static/star-map-3d.js`
 - `node --check app/static/screen.js`

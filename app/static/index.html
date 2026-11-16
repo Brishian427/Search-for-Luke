@@ -45,10 +45,13 @@
         <section id="cards" class="cards"><div class="locked-state"><span>◇</span><p>Your private dossier remains sealed until mission start.</p></div></section>
       </section>
       <section id="panel-mission" class="column mission-column" role="tabpanel" aria-labelledby="tab-mission" data-panel="mission" hidden>
+        <div class="mission-sidebar">
         <article class="instruction panel"><div class="instruction-index" id="stage-index">00</div><div><span class="data-label" id="stage-name">LOBBY</span><h2 id="instruction-text">Waiting for the mission to begin.</h2><p id="instruction-detail">Stay on this screen. The mission will begin automatically.</p></div></article>
         <section id="briefing" class="briefing panel" hidden></section>
+        <section id="share-order" class="share-order panel" hidden></section>
+        </div>
         <section class="map-panel panel">
-          <div class="map-toolbar"><div><span class="data-label">NAVIGATION CHART</span><strong>REACH SYSTEM · HOUR 48</strong></div><div id="selection-counter" class="selection-counter" hidden><span>STARS PLACED</span><b>0 / 3</b></div></div>
+          <div class="map-toolbar"><div><span class="data-label">NAVIGATION CHART</span><strong>REACH SYSTEM · <span id="chart-hour-heading">HOUR 0</span></strong></div><div id="selection-counter" class="selection-counter" hidden><span>STARS PLACED</span><b>0 / 3</b></div></div>
           <div id="star-map" class="star-map">
             <div id="star-map-3d" class="star-map-3d" role="application" aria-label="Interactive coplanar 3D map orbiting Reach">
               <div id="map-3d-labels" class="map-3d-labels"></div>
@@ -57,13 +60,24 @@
             </div>
             <svg viewBox="0 0 1000 600" role="img" aria-label="Map of the Reach system">
               <defs><filter id="softGlow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="cloudBlur"><feGaussianBlur stdDeviation="16"/></filter><pattern id="mapGrid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#8b98a9" stroke-opacity=".07"/></pattern></defs>
-              <rect width="1000" height="600" fill="url(#mapGrid)"/><g class="orbits"><ellipse cx="100" cy="300" rx="170" ry="105"/><ellipse cx="100" cy="300" rx="340" ry="210"/><ellipse cx="100" cy="300" rx="570" ry="340"/><ellipse cx="100" cy="300" rx="790" ry="470"/></g><path class="planned-route" d="M115 300 C290 285 520 292 700 280"/><g class="veil-cloud"><ellipse cx="860" cy="250" rx="100" ry="72"/><circle cx="815" cy="240" r="48"/><circle cx="895" cy="230" r="54"/></g><g class="debris-dots" aria-hidden="true"></g><g id="map-places"></g><g class="map-legend"><text x="36" y="560">— — PLANNED ROUTE</text><text x="790" y="560">REACH SYSTEM / NOT TO SCALE</text></g>
+              <rect width="1000" height="600" fill="url(#mapGrid)"/><g id="map-orbits" class="orbits"></g><path id="map-planned-route" class="planned-route"/><g id="map-veil-cloud" class="veil-cloud"><ellipse rx="70" ry="48"/><circle cx="-34" cy="-5" r="34"/><circle cx="36" cy="-9" r="38"/></g><g class="debris-dots" aria-hidden="true"></g><ellipse id="what-if-ring-svg" class="what-if-ring-svg" hidden/><g id="map-places"></g><g id="map-ship" class="map-ship"><path d="M0 -13 L9 10 L0 6 L-9 10 Z"/><text y="-24">Last confirmed: Hour 0</text></g><g class="map-legend"><text x="36" y="560">— — PLANNED ROUTE</text><text x="790" y="560">REACH SYSTEM / NOT TO SCALE</text></g>
             </svg>
+          </div>
+          <div class="chart-tools">
+            <div class="timeline-control">
+              <div class="timeline-heading"><label for="chart-timeline">CHART TIMELINE</label><output id="timeline-current" for="chart-timeline">Hour 0</output></div>
+              <input id="chart-timeline" type="range" min="0" max="48" step="0.5" value="0" aria-label="Chart hour">
+              <div class="timeline-endpoints"><span>Hour 0 (last confirmed)</span><span>Hour 48 (now)</span></div>
+            </div>
+            <div class="what-if-control">
+              <button id="what-if-start" type="button">What if he left from here?</button>
+              <span id="what-if-status">Choose a start point to test travel range.</span>
+              <button id="what-if-reset" type="button" hidden>Reset</button>
+            </div>
           </div>
           <div id="map-actions" class="map-actions" hidden><p id="map-help">Tap a location to place a star.</p><button id="submit-action" class="primary-button" disabled>Submit stars</button></div>
           <div id="team-result" class="team-result" hidden></div>
         </section>
-        <section id="share-order" class="share-order panel" hidden></section>
       </section>
       </div>
       <aside id="panel-comms" class="column comms-column" role="tabpanel" aria-labelledby="tab-comms" data-panel="comms">
@@ -75,6 +89,7 @@
     </main>
   </div>
   <div id="toast" class="toast" role="status"></div>
+  <script src="/static/orbit-model.js" defer></script>
   <script src="/static/player.js" defer></script>
   <script type="module" src="/static/star-map-3d.js"></script>
 </body>

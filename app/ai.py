@@ -6,7 +6,7 @@ import time
 from collections import Counter
 import httpx
 
-from . import content, game
+from . import content, game, orbits
 from .database import SessionLocal
 from .models import AIVote, AssistantMessage, BoardPost, GameSession, Player, Submission, TeamDrop
 
@@ -69,8 +69,13 @@ def assistant_system_prompt(player: Player, released: bool):
         f"Your teammate holds these clue cards: {cards}. {log_line} "
         "Help your teammate understand their own cards and think about what to ask the others. Use only facts from the briefing, "
         "the cards and the log. Do not invent new facts. You do not know what is on anyone else's cards. "
-        "Do not decide the final answer for them. Keep replies under 80 words."
+        "Do not decide the final answer for them. Keep replies under 80 words.\n\n"
+        + orbits.chart_timeline_prompt()
     )
+
+
+def agent_system_prompt():
+    return "You are one bounded-information agent on a rescue team.\n\n" + orbits.chart_timeline_prompt()
 
 
 async def assistant_reply(player: Player, question: str, released: bool, history: list[dict]):
@@ -121,7 +126,7 @@ async def agent_result(player: Player, action: str, board_text: str):
         prompt = common + "\nVote for exactly two different drop sites. Return two location ids as a JSON array only."
     else:
         prompt = common + "\nPost one useful contribution to the team discussion, at most 60 words. Do not claim facts absent from the briefing, cards, log, or board."
-    text = await call_with_retry([{"role": "system", "content": "You are one bounded-information agent on a rescue team."}, {"role": "user", "content": prompt}])
+    text = await call_with_retry([{"role": "system", "content": agent_system_prompt()}, {"role": "user", "content": prompt}])
     return clean_json(text) if action in {"stars1", "stars2", "vote"} else text[:500]
 
 

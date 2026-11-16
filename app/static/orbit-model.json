@@ -1,0 +1,14 @@
+{
+  "reference_hour": 40,
+  "timeline_hours": [0, 8, 14, 20, 26, 29, 30, 34, 36, 38, 40, 48],
+  "ship_speed": 20,
+  "bodies": {
+    "reach":  { "name": "Reach",         "x": 0,   "z": 0,   "omega": 0 },
+    "storm":  { "name": "Storm Zone",    "x": 57,  "z": 12,  "omega": 0.5 },
+    "orange": { "name": "Orange Planet", "x": 92,  "z": 8,   "omega": 4.5 },
+    "veil":   { "name": "the Veil",      "x": 104, "z": -4,  "omega": 0 },
+    "green":  { "name": "Green Planet",  "x": -51, "z": -51, "omega": 0.5 },
+    "red":    { "name": "Red Planet",    "x": -39, "z": 39,  "omega": 0.5 },
+    "debris": { "name": "Debris Belt",   "x": 50,  "z": -72, "omega": 0 }
+  }
+}

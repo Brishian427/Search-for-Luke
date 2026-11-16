@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 import qrcode
+import anyio.to_thread
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -49,6 +50,8 @@ def on_startup():
 
 @app.on_event("startup")
 async def start_ai_loop():
+    # The classroom can create a synchronized burst at stage boundaries.
+    anyio.to_thread.current_default_thread_limiter().total_tokens = 100
     app.state.ai_task = asyncio.create_task(ai.ai_stage_loop())
 
 
@@ -236,7 +239,8 @@ async def ask_assistant(body: TextBody, player: str = Query(...), db: Session = 
     started = time.perf_counter()
     try:
         reply = await ai.assistant_reply(person, body.text.strip(), stage_rank(stage["id"]) >= 4, history)
-    except Exception:
+    except Exception as exc:
+        print(f"Assistant call skipped ({person.team_id}): {type(exc).__name__}: {str(exc)[:180]}")
         reply = "The assistant didn't respond. Ask again."
     latency_ms = int((time.perf_counter() - started) * 1000)
     db.add(AssistantMessage(session_id=current_game.id, team_id=person.team_id, player_id=person.id,

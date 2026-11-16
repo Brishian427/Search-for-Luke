@@ -78,7 +78,7 @@ def join_player(db: Session, game: GameSession, name: str, spectator=False, team
     )
     if player.late and not player.spectator:
         team_late_count = db.query(Player).filter_by(session_id=game.id, team_id=resolved_team, late=True).count()
-        card = content.LATE_CARD_ORDER[(team_late_count - 1) % len(content.LATE_CARD_ORDER)]
+        card = content.LATE_CARD_ORDER[team_late_count % len(content.LATE_CARD_ORDER)]
         player.cards_json = json.dumps([card])
         occupied = [p.seat for p in db.query(Player).filter_by(session_id=game.id, team_id=resolved_team).all() if p.seat]
         player.seat = max(occupied, default=0) + 1

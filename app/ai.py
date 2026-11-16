@@ -14,6 +14,7 @@ LLM_MODE = os.getenv("LLM_MODE", "mock").lower()
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
+DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "60"))
 MODEL_SEMAPHORE = asyncio.Semaphore(5)
 
 
@@ -28,15 +29,21 @@ def clean_json(text: str):
     return json.loads(match.group(0))
 
 
-async def deepseek(messages, timeout=20):
+async def deepseek(messages, timeout=None):
     if not DEEPSEEK_API_KEY:
         raise RuntimeError("DEEPSEEK_API_KEY is not configured")
     async with MODEL_SEMAPHORE:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout or DEEPSEEK_TIMEOUT) as client:
             response = await client.post(
                 f"{DEEPSEEK_BASE_URL}/chat/completions",
                 headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
-                json={"model": DEEPSEEK_MODEL, "messages": messages, "temperature": 0.25},
+                json={
+                    "model": DEEPSEEK_MODEL,
+                    "messages": messages,
+                    "temperature": 0.25,
+                    "max_tokens": 256,
+                    "thinking": {"type": "disabled"},
+                },
             )
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"].strip()
@@ -126,7 +133,8 @@ async def run_agent_calls(players, action, board_text=""):
     async def one(player):
         try:
             return player.id, await agent_result(player, action, board_text)
-        except Exception:
+        except Exception as exc:
+            print(f"AI call skipped ({action}, {player.team_id}): {type(exc).__name__}: {str(exc)[:180]}")
             return player.id, None
     return dict(await asyncio.gather(*(one(player) for player in players)))
 

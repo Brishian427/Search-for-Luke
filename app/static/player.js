@@ -47,4 +47,4 @@ $('#assistant-form').onsubmit=event=>{event.preventDefault();showToast('Assistan
 function render(state){currentState=state;$('#join-view').hidden=true;$('#game-view').hidden=false;renderTeam(state);renderCards(state);renderStage(state);renderComms(state);lastStage=state.stage.id;}
 async function pollState(){if(!playerId||polling)return;polling=true;try{render(await request(`/api/state?player=${playerId}`));}catch(error){if(error.message==='Player not found'){localStorage.removeItem('luke-player-id');playerId=null;$('#join-view').hidden=false;$('#game-view').hidden=true;loadLobby();}else showToast(error.message,true);}finally{polling=false;}}
 $$('.mobile-tabs button').forEach(button=>button.onclick=()=>{$$('.mobile-tabs button').forEach(b=>b.classList.toggle('active',b===button));$$('[data-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===button.dataset.tab));});
-buildMap();if(playerId)pollState();else loadLobby();setInterval(pollState,2000);
+buildMap();if(playerId)pollState();else loadLobby(new URLSearchParams(location.search).get('room')||'');setInterval(pollState,2000);

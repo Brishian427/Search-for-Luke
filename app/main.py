@@ -1,9 +1,11 @@
 import json
 import os
+import io
 from pathlib import Path
 from typing import Any
-from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, StreamingResponse
+import qrcode
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -236,6 +238,50 @@ def admin_state(key: str, db: Session = Depends(get_db)):
     return {"room_code": current_game.room_code, "started": current_game.started_at is not None,
             "stage": stage, "clock": {"elapsed": game.elapsed_seconds(current_game), "remaining": game.countdown_seconds(current_game), "paused": current_game.paused},
             "teams": team_data}
+
+
+@app.get("/api/screen/state")
+def screen_state(db: Session = Depends(get_db)):
+    current_game = game.active_game(db)
+    game.ensure_commanders(db, current_game)
+    game.ensure_final_drops(db, current_game)
+    stage = game.stage_for(current_game)
+    players = db.query(Player).filter_by(session_id=current_game.id).all()
+    teams = []
+    for team_id, team in content.TEAMS.items():
+        members = [p for p in players if p.team_id == team_id and not p.spectator]
+        joined_names = {p.name for p in members}
+        expected = len(members) if current_game.started_at else len(team["members"])
+        complete = len(members)
+        label = f"{complete}/{expected} connected" if expected else "Waiting"
+        if stage["id"] in {"S2", "S6"}:
+            round_no = 1 if stage["id"] == "S2" else 2
+            complete = db.query(Submission).filter_by(session_id=current_game.id, team_id=team_id, round=round_no).count()
+            label = f"{complete}/{expected} submitted"
+        elif stage["id"] == "S7":
+            drop = db.query(TeamDrop).filter_by(session_id=current_game.id, team_id=team_id).first()
+            complete = len(json.loads(drop.choices_json)) if drop else 0
+            expected = 2
+            label = f"{complete}/2 sites selected"
+        teams.append({"id": team_id, "condition": team["condition"], "joined": len(members), "size": len(team["members"]),
+                      "members": [{"name": name, "joined": name in joined_names} for name in team["members"]] if stage["id"] == "S0" else [],
+                      "progress": {"complete": complete, "total": max(1, expected), "label": label}})
+    result = {"title": content.TITLE, "room_code": current_game.room_code, "stage": stage,
+              "clock": {"elapsed": game.elapsed_seconds(current_game), "remaining": game.countdown_seconds(current_game), "paused": current_game.paused},
+              "places": [{"id": place_id, **place} for place_id, place in content.PLACES.items()], "teams": teams}
+    if stage["id"] == "S9":
+        result["questions"] = content.QUESTIONS
+    return result
+
+
+@app.get("/api/qr")
+def room_qr(request: Request, room: str):
+    join_url = str(request.base_url).rstrip("/") + "/?room=" + room.upper()
+    image = qrcode.make(join_url)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="image/png", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/admin/new")

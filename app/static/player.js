@@ -3,6 +3,9 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const CANDIDATES = ['storm', 'orange', 'veil', 'green', 'red', 'debris'];
 const placeMeta = {reach:['Reach',100,300,'home'],storm:['Storm Zone',450,300,'storm'],orange:['Orange Planet',720,280,'orange'],veil:['the Veil',860,250,'veil'],green:['Green Planet',380,470,'green'],red:['Red Planet',300,120,'red'],debris:['Debris Belt',555,485,'debris']};
 let playerId=localStorage.getItem('luke-player-id'), currentState=null, selections=[], selectionMode=null, lastStage=null, polling=false;
+function sync3DMap(){if(window.starMap3D){window.starMap3D.setInteractive(!!selectionMode);window.starMap3D.setSelections(selections);}}
+window.addEventListener('star-map-select',event=>selectPlace(event.detail.id));
+window.addEventListener('star-map-3d-ready',sync3DMap);
 function escapeHtml(text=''){return text.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function formatText(text=''){return escapeHtml(text).replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');}
 function showToast(message,error=false){const el=$('#toast');el.textContent=message;el.classList.toggle('error',error);el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
@@ -26,7 +29,7 @@ function selectPlace(id){if(!selectionMode||!CANDIDATES.includes(id))return;cons
 function removeSelection(id){const index=selections.lastIndexOf(id);if(index>=0)selections.splice(index,1);renderSelections();}
 function renderSelections(){
   $$('.place').forEach(el=>{const count=selections.filter(id=>id===el.dataset.place).length;el.classList.toggle('selected',count>0);const marks=$('.selection-marks',el);marks.innerHTML=count?`<g class="selection-badge"><circle cx="34" cy="-34" r="16"/><text x="34" y="-29">${count}</text></g>`:'';});
-  const max=selectionMode==='drop'?2:3;$('#selection-counter').hidden=!selectionMode;$('#selection-counter span').textContent=selectionMode==='drop'?'DROP SITES':'STARS PLACED';$('#selection-counter b').textContent=`${selections.length} / ${max}`;$('#submit-action').disabled=selections.length!==max;$('#submit-action').textContent=selectionMode==='drop'?'Confirm drop sites':'Submit stars';$('#map-help').innerHTML=selections.length?selections.map(id=>`<button data-remove="${id}">− ${placeMeta[id][0]}</button>`).join(''):(selectionMode==='drop'?'Tap a location to choose a drop site.':'Tap a location to place a star.');$$('[data-remove]').forEach(button=>button.onclick=()=>removeSelection(button.dataset.remove));
+  const max=selectionMode==='drop'?2:3;$('#selection-counter').hidden=!selectionMode;$('#selection-counter span').textContent=selectionMode==='drop'?'DROP SITES':'STARS PLACED';$('#selection-counter b').textContent=`${selections.length} / ${max}`;$('#submit-action').disabled=selections.length!==max;$('#submit-action').textContent=selectionMode==='drop'?'Confirm drop sites':'Submit stars';$('#map-help').innerHTML=selections.length?selections.map(id=>`<button data-remove="${id}">− ${placeMeta[id][0]}</button>`).join(''):(selectionMode==='drop'?'Tap a 3D location to choose a drop site.':'Tap a 3D location to place a star.');$$('[data-remove]').forEach(button=>button.onclick=()=>removeSelection(button.dataset.remove));sync3DMap();
 }
 $('#submit-action').onclick=async()=>{try{if(selectionMode==='drop')await request(`/api/drop?player=${playerId}`,{method:'POST',body:JSON.stringify({places:selections})});else await request(`/api/stars/${selectionMode}?player=${playerId}`,{method:'POST',body:JSON.stringify({stars:selections})});showToast(selectionMode==='drop'?'Drop sites confirmed.':'Stars submitted.');await pollState();}catch(error){showToast(error.message,true);}};
 

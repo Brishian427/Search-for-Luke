@@ -7,6 +7,9 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 5l27 27-27 27L5 32z' fill='%230e1117' stroke='%233cc2b8' stroke-width='4'/%3E%3Cpath d='M32 20l3.5 8.5L44 32l-8.5 3.5L32 44l-3.5-8.5L20 32l8.5-3.5z' fill='%233cc2b8'/%3E%3C/svg%3E">
   <title>Search for Luke</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script type="importmap">
+    {"imports":{"three":"/static/vendor/three/three.module.js","three/addons/":"/static/vendor/three/addons/"}}
+  </script>
 </head>
 <body>
   <div class="noise" aria-hidden="true"></div>
@@ -42,6 +45,11 @@
         <section class="map-panel panel">
           <div class="map-toolbar"><div><span class="data-label">NAVIGATION CHART</span><strong>REACH SYSTEM · HOUR 48</strong></div><div id="selection-counter" class="selection-counter" hidden><span>STARS PLACED</span><b>0 / 3</b></div></div>
           <div id="star-map" class="star-map">
+            <div id="star-map-3d" class="star-map-3d" role="application" aria-label="Interactive 3D map of the Reach system">
+              <div id="map-3d-labels" class="map-3d-labels"></div>
+              <div class="map-3d-hud" aria-hidden="true"><span>3D NAVIGATION</span><b>DRAG TO ORBIT · SCROLL TO ZOOM</b></div>
+              <button id="reset-3d-view" class="reset-3d-view" type="button" aria-label="Reset 3D map view">RESET VIEW</button>
+            </div>
             <svg viewBox="0 0 1000 600" role="img" aria-label="Map of the Reach system">
               <defs><filter id="softGlow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="cloudBlur"><feGaussianBlur stdDeviation="16"/></filter><pattern id="mapGrid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#8b98a9" stroke-opacity=".07"/></pattern></defs>
               <rect width="1000" height="600" fill="url(#mapGrid)"/><g class="orbits"><ellipse cx="100" cy="300" rx="170" ry="105"/><ellipse cx="100" cy="300" rx="340" ry="210"/><ellipse cx="100" cy="300" rx="570" ry="340"/><ellipse cx="100" cy="300" rx="790" ry="470"/></g><path class="planned-route" d="M115 300 C290 285 520 292 700 280"/><g class="veil-cloud"><ellipse cx="860" cy="250" rx="100" ry="72"/><circle cx="815" cy="240" r="48"/><circle cx="895" cy="230" r="54"/></g><g class="debris-dots" aria-hidden="true"></g><g id="map-places"></g><g class="map-legend"><text x="36" y="560">— — PLANNED ROUTE</text><text x="790" y="560">REACH SYSTEM / NOT TO SCALE</text></g>
@@ -61,5 +69,6 @@
   </div>
   <div id="toast" class="toast" role="status"></div>
   <script src="/static/player.js" defer></script>
+  <script type="module" src="/static/star-map-3d.js"></script>
 </body>
 </html>

@@ -107,6 +107,7 @@ Checked at both **1440 × 900** and **390 × 844**:
 - Player lobby and sealed-card state
 - S1 briefing and dossier cards
 - S2 repeated star placement, removal, submission, and confirmation
+- S2 3D chart drag/orbit, wheel zoom, reset view, rotating planet textures, label selection, and persisted submission
 - S3 mobile tabs, team-board posting, and assistant reply
 - S7 Drop Commander selection and confirmation
 - Projector lobby, room code, QR code, and six roster panels
@@ -122,6 +123,7 @@ Polish fixes made during this pass:
 - Mobile result tables and timelines remain reachable by scrolling.
 - S7 empty-selection help now says “choose a drop site” instead of “place a star.”
 - Reduced-motion handling remains active for all reveal and glow animation.
+- The player chart now uses a locally vendored Three.js scene with an SVG fallback; desktop and 390 × 844 framing both keep all selectable bodies reachable.
 
 ## Static and deployment checks
 
@@ -129,6 +131,7 @@ Result: **PASS** for all checks available in this environment.
 
 - `python -m compileall -q app scripts`
 - `node --check app/static/player.js`
+- `node --check app/static/star-map-3d.js`
 - `node --check app/static/screen.js`
 - `git diff --check`
 - `render.yaml` parsed successfully as YAML

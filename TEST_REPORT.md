@@ -160,6 +160,9 @@ Result: **PASS** for all checks available in this environment.
 - Render `DATABASE_URL` normalization selected SQLAlchemy's `postgresql+psycopg` driver
 - `/api/health` returned HTTP 200 throughout test runs
 - Render Blueprint defines one paid always-on Docker web instance and one paid managed Postgres instance
+- Render Blueprint fields and current compute-plan IDs were checked against the current official Render Blueprint specification.
+- `autoDeployTrigger` is `off`, so publishing the reviewed commit cannot trigger an unapproved deployment; deployment must be started manually.
+- The local repository has no Git remote configured. Code is release-ready, but an actual Render deployment still requires the intended repository URL or an existing connected Render service.
 
 Docker was not installed on the test machine, so a local `docker build` was not available. The Dockerfile was inspected and its runtime command matches the required Uvicorn start command; Render YAML and the Python/Postgres driver path were validated independently.
 
